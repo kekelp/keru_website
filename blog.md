@@ -1,5 +1,5 @@
 
-This first post is about the concepts of "Declarative" and "Reactive" GUI and how relevant they are in the design of GUI libraries.
+This first post is about the concepts of "Reactive" GUI and how relevant it is in the design of GUI libraries.
 
 Keru is a "declarative" library, but it's not "reactive".
 
@@ -32,49 +32,30 @@ fn update_ui(state: &mut State, ui: &mut Ui) {
 All this code is run on every update. Is this a bad thing?
 There's probably many people who would say yes. They might be thinking things like these:
 
-- Oldschool imperative/retained-mode GUI systems were just better, because you'd just write the code for what you want to happen, instead of writing a high level declaration of what you want and having the library diff things to figure it out.
+- Oldschool imperative/retained-mode GUI systems were just better, because you'd just write the code for what you want to happen, instead of writing a high level declaration of what you want and having the library diff things to figure it out for you.
 
 - Anything that looks like immediate mode is especially bad, because you're rerunning a bunch of code on every update.
 
-- If anything, you should use a "reactive" system, where the library can keep track of which parts of your state affect which parts of your declarative model. And it better be "fine grained reactivity", otherwise that's probably still wasteful.
+- If anything, you should use a "reactive" system, where the library can keep track of which parts of your state affect which parts of your declarative model. And it better be "fine grained reactivity"!
 
 The point of this post is to answer all these concerns.
 
 # Definitions
 
-Many of these words are used with different meanings by different people, so I'll have to spend some time explaining the sense in which they are used in this post. 
+Many of these words are used with different meanings by different people, so I'll have to spend some time explaining the sense in which they are used in this post.
 
 ## Declarative / Imperative
 
-This is a property of how user code looks like.
+This is a property of how the library user's code looks like.
 
-In a declarative system, the user writes a single description of the whole GUI. Keru's syntax above is declarative. Other examples are SwiftUI, XML with data binding, or `egui`.
+In a declarative system, the user writes a single description of the whole GUI. Keru's syntax above is declarative. Other examples are SwiftUI, `egui`, or React.
 
 In contrast, in an imperative system, the user sets up a static initial state, and then manually writes the imperative changes that should happen as a result of input or other events.
-This was never very popular, so people wrote plenty of user-level abstractions to try to hide this. But under the hood, you'd still find to do manual changes to the retained tree.
-
-## Retained / Immediate
-
-This is a property of how a GUI system is implemented internally.
-
-A system is retained when it retains a lot of state between frames. We might be tempted to say that "Immediate" is the opposite of that. However, the word "Immediate" has been used with so many different and confusing meanings, that it's better to not use it at all.
-
-## Incremental
-
-This is a performance property. A system is highly incremental when a small unimportant input, or a small change in the underlying state, results in a small amount of recomputation.
-
-If a system doesn't retain any state, it probably won't be able to be very incremental. Any system that retains some or all of its state can be more or less incremental depending on its implementation and its other design choices.
-
-- Note that incrementality is not about what happens "every frame", even when the program is fully idle. It's easy for even the most naive immediate-mode libraries to just do nothing where no input is being received at all.
-
-- It's also easy to annotate which GUI elements should react to which input. So clicking on a non-interactive background element still doesn't have to result in any wasted work, regardless of the architecture.
-
-- So, incrementality is really only about relatively complex GUIs with multiple parts, and in which it's common to interact with some parts while the rest stays still.
-
+This was never very popular, so people wrote plenty of user-level abstractions to try to hide this. But under the hood, you'd still find the manual changes to the retained tree.
 
 ## Reactive Programming / Redeclare-On-Every-Update
 
-This is the final and most important distinction, between two ways of building declarative GUI systems.
+This is the most important distinction, between two ways of building declarative GUI systems.
 
 Maybe someone can come up with a better term, but for now, I will use the term "Redeclare-On-Every-Update" to describe the systems where the GUI declaration is written in real code, and that whole code is re-executed on every update, to get a fresh new declaration of the target state of the GUI.
 
@@ -86,10 +67,29 @@ In this kind of system, the declarative form will have some sort of pseudo-contr
 
 Note that despite the name, vanilla React is Redeclare-On-Every-Update, not Reactive-Programming.
 
+## Retained
+
+This is a property of how a GUI system is implemented internally.
+
+A system is retained when it retains a lot of state between frames. We might be tempted to say that "Immediate" is the opposite of that. However, the word "Immediate" has been used with so many different and confusing meanings, that it's better to use it as little as possible.
+
+## Incremental
+
+A system is incremental when a small change to the program's state results in a small amount of recomputation. This is the performance property that the strawman arguments at the beginning are referring to.
+
+- Note that incrementality is not about what happens "every frame", even when the program is fully idle. It's easy for even the most naive immediate-mode libraries to just do nothing where no input is being received at all.
+
+- It's also easy to annotate which GUI elements should react to which input. So clicking on a non-interactive background element still shouldn't result in any needless work, regardless of the architecture.
+
+- So, incrementality is really only about relatively complex GUIs with multiple parts, and in which it's common to interact with some parts while the rest stays still.
+
+If a system doesn't retain any state, it probably won't be able to be very incremental. But any system that retains some of its state can be more or less incremental. The point of this post is to analyze how much the other distinctions affect incrementality.
+
+In particular, how much incrementality do we lose by not being reactive?
+
+
 
 # How to be incremental
-
-Let's describe how much different types of GUI are able to achieve incrementality.
 
 Based on our definitions above, we can consider three different classes of GUI:
 - However, there's these three types of GUI:
@@ -97,6 +97,8 @@ Based on our definitions above, we can consider three different classes of GUI:
     1) Oldschool imperative GUI
     2) Reactive-Programming declarative GUI
     3) Redeclare-On-Every-Update declarative GUI
+
+In 2026, there's not a whole lot of people who are clamoring for oldschool imperative GUI libraries, but it's useful to consider all three classes.
 
 When an event arrives or some state changes, the GUI system has to do many things. Starting from the top layer, it first has to "consult" the library user's code, to determine what the user wants to change. Depending on the class:
 
@@ -165,5 +167,31 @@ with_arena(|arena| {
     });
 });
 ```
+
+With the power of arenas and the common sense of the average non-Javascript programmer, we're probably in a solid spot.
+We can expect most programs to redeclare their GUI in microseconds.
+
+# The cost-benefit analysis
+
+With this post, I hope to have made the case that despite the very high prevalence of the concept of "reactivity", it probably shouldn't be the first thing to focus on when evaluating GUI systems.
+
+Well, actually, all I did was explain why redeclaring on every update doesn't have to be expensive. The other part of the message is that just like how most people naturally prefer writing GUI code in declarative style rather than imperative, I expect that most people will naturally prefer the simpler programming model of non-reactive systems ("Redeclare-On-Every-Update").
+
+At the end of the day, that's a subjective thing: a matter of aesthetics. However, I feel like these aesthetic concerns are still very important. 
+
+At this point, there's really no shortage or experimental GUI libraries in Rust, trying out all sorts of programming models. But none has really caught on, and none really seems to generate the sort of enthusiasm that people have for other libraries or for Rust itself. There's probably many different reasons for this, but one of the main ones is that the user-friendliness of many of these libraries remains low.
+
+The library users are expected to internalize many concepts about "contexts" or "registers", to lay out all their state into special library-provided containers, or to write all their logic inside closures or trait impls. 
+
+Often they are told that they should read many pages of abstract descriptions so that they can grasp the bigger picture, or maybe even that they shouldn't expect the documentation to hold their hand and they should figure out these complicated systems on their own.
+
+There might be valid reasons for this sort of complexity, but "reactivity" is probably not one of them.
+
+
+# Next Post: Can we have reactivity anyway, just for fun?
+
+Even if we don't make it a core part of our programming model, it turns out that it's not hard to add some level of opt-in reactivity anyway, by skipping some redeclarations or with memoization. This is what happened in the React world.
+
+In Keru, the "Component" trait allows to define reusable blocks of GUI code. Components can also manage their own state. The next post will show some examples of using Components to make pseudo-reactive components.
 
 
