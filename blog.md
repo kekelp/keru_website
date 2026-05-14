@@ -9,7 +9,7 @@ Keru is a "declarative" library, but as you can probably guess by the title, it'
 
 This post will try to define all the relevant terms, and give an overview of how the different axes in the design space interact with each other. Then, it will do some considerations on performance and usability, bringing in examples from Keru.
 
-It will try to argue that it's not worth it to make it a fundamental part of a library's programming model. However, it's still great to have *some* degree of opt-in reactivity for the cases where it's actually needed, and it will show Keru's approach on this.
+It will try to argue that it's not worth it to make it a fundamental part of a library's programming model. However, it's still great to make space *some* degree of opt-in reactivity,  and it will show Keru's approach on this.
 
 
 To start off with something concrete before getting into the definitions, I will show some Keru code. This is what it looks like:
@@ -92,9 +92,17 @@ On the other hand, I will use the term "Reactive" to describe the systems like S
 
 In these systems, when you write a declaration of the GUI, the system will try go through it ahead of time, ideally just once, and analyze the dependencies between the data and the elements of the GUI. Then, it will wire up a system of observers and callbacks so that every change in the state can automatically trigger the desired change in the GUI.
 
-In this kind of system, the declarative form will have some sort of pseudo-control-flow structures that get compiled down statically. In SolidJS, this `<Show> ... </Show>` is a pseudo-`if`, and `<For> ... </For>` is a pseudo-`for`. In SwiftUI, there's compiler magic that can turn language-level `if`s and `for`s into those kind of structures.
+In this kind of system, the declarative form will have some sort of pseudo-control-flow structures that get compiled down statically, like how SolidJS's `<Show> ... </Show>` works as a pseudo-`if`. In SwiftUI, there's compiler magic that can turn language-level `if`s and `for`s into those kind of structures.
 
-Note that despite the name, vanilla React is Redeclare-On-Every-Update, not Reactive.
+Note that despite the name, vanilla React is Redeclare-On-Every-Update, not Reactive. It's still unequivocally re-executing the declaration code: the fact that it creates a virtual tree is just an implementation detail of how it goes from a fresh redeclaration to an updated state.
+
+While this is a useful distinction to keep in mind, the muddy reality is that many of the "Reactive" systems actually sit in the middle ground. While there are a few purist systems like SolidJS or Leptos, it's fairly common for reactive libraries to start with a Redeclare-On-Every-Update base and add some reactive elements on top of it. Usually this boils down to a system
+that still goes through the declaration code on every update, but is usually able to skip some or most of it.
+
+In this kind of hybrid system, there's also the option of doing an equality-based reactive system rather than one based on signals or observables. In that case, it starts to look more like regular memoization. If you go far enough in this direction, you can get to a place where you're doing some non-intrusive opt-in optimizations on top of a simple Redeclare-On-Every-Update, which I don't think is a bad idea.
+
+In practice, I think that the Reactive / Redeclare-On-Every-Update distinction is still quite strong. Even if the code itself is somewhere in the middle, you can usually feel that a library is on one side or the other of the ideological divide, and usually it does reflect in the experience of the library user.
+Ultimately, a good test for a sincerely Redeclare-On-Every-Update system might be that it should always let the user decide when he wants to run his own declaration code and when to skip it. As overused as the term is, a Redeclare-On-Every-Update is one that doesn't feel like a "framework".
 
 ## Incremental
 
@@ -106,64 +114,63 @@ Incrementality is a property of the system's performance, and it's the one that 
 If the previous properties are the "axes" of the design space, incrementality is the value of the function we're trying to optimize. The point of this post is to see how much incrementality we can achieve from different points in the declarative/imperative, retained/non-retained, and especially reactive/redeclare-on-every-update space.
 
 
-## The Basics
+# The Basics
 
-Actually, before getting into that, we should note that there's some basic layer of incrementality that we should be able to get regardless of all those other properties.
+Actually, before getting into that, we should note that there's some basic layer of incrementality that we should expect to get regardless of all those other properties.
 
 - It's easy for even the most naive immediate-mode libraries to just do nothing where no input is being received at all. We can pick any combination of non-retained or non-reactive library, that will *never* justify a GUI program burning CPU for no reason while it's completely idle.
 If that happens, it's not because of any design decision or architectural choice: you're probably using a library that was only meant to be used inside a game. Or maybe the author of the library forgot an `if`.
 
 - It's also easy to annotate which GUI elements should react to which input. So if the user is clicking on a non-interactive background element, or just moves the mouse around, that still shouldn't result in any needless work.
 
-- So, the incrementality that we're talking about here is really only about relatively complex GUIs with multiple parts, and in which it's common to interact with some parts while the rest stays still.
+So, the incrementality that we're talking about here applies only to the situation where the GUI is composed of multiple independent parts. When the user does a meaningful interaction which causes in a part of the GUI changing, but that leaves all the other parts static, then we want to be able to update just that part.
 
-
-
-
-    [if you're very incremental, you can get into situations where scrolling and some smaller interactions are very fast, but then once in a while you will have to do a big relayout anyway, and miss a bunch of frames anyway. Is that what we really want to optimize for? In 2026, it feels like we should be able to expect most GUIs to just do their whole non-incremental relayout and rerender in a single frame.]
-
-I don't want to overstate my case here. If the GUI can really do a whole non-incremental relayout and rerender in a single frame, there's no reason why we wouldn't also want incrementality on top of that, so that we can reduce CPU usage, power consumption, battery usage, and heat. However, I think it's fair to say that incrementality is generally not what makes or breaks the performance of a GUI system, and especially not its snappiness.
-
-With that in mind, let's see how much the other distinctions affect incrementality.
-
-In particular, how much incrementality do we lose by not being reactive?
 
 # How to be incremental
 
-Based on our definitions above, we can consider three different classes of GUI:
-- However, there's these three types of GUI:
+Now let's finally look at how the properties defined at the start affect incrementality.
 
-    1) Oldschool imperative GUI
-    2) Reactive declarative GUI
-    3) Redeclare-On-Every-Update declarative GUI
+We won't actually consider retainedness very much, because it's an implementation detail, and it doesn't actually have many tradeoffs other than some memory usage. We'll just assume that if a system can retain more some state to be more incremental or more efficient, it will figure out a good way to do so without bothering anybody.
 
-In 2026, there's not a whole lot of people who are clamoring for oldschool imperative GUI libraries, but it's useful to consider all three classes.
+Looking at the remaining properties, we can consider three different classes of GUI:
 
-When an event arrives or some state changes, the GUI system has to do many things. Starting from the top layer, it first has to "run" the library user's code, to determine what the user wants to change. Depending on the class:
+1) Oldschool imperative GUI
 
-1) In an imperative system, the library user's code will literally be a step by step description of what needs to be changed in the tree. Depending on the era, it would probably have to go through a bunch of wrappers, viewmodels, and other abstractions. But at the end of them it would find some code in a callback somewhere that lists all the required changes in order. So the system just runs that code, and does nothing else.
+2) Reactive declarative GUI
 
-2) A Reactive library will be able to look at what state variables changed, and thanks to the relationships that it already registered, it will automatically know what GUI elements it should update.
+3) Redeclare-On-Every-Update declarative GUI
 
-3) A Redeclare-On-Every-Update library will have to rerun all the declarative code that the library user provided. Then it will do some sort of diffing to see what to update.
+What does the program do when the user interacts with the GUI and changes some state?
+At a very abstract level, we might say that it has to figure out what the library user wants to happen, then make it happen.
 
-In this first step, it's undeniable that the "rerun stuff every frame" libraries are at a disadvantage. They have to rerun their per-frame code to figure out what changes should be applied.
+Depending on the class:
 
-However, after this step, all three kinds of libraries will end up in the same position. They updated the internal element tree, but there's still a lot of work to do:
+1) In an imperative system, the library user's code will literally be a step by step description of what needs to be changed in the tree. So the system just runs that code, and does nothing else.
+
+2) In a reactive system, the library will have pre-computed a dependency graph that will immediately tell it what GUI elements it should update.
+
+3) In a Redeclare-On-Every-Update system, the library will have to rerun all the declarative code that the library user provided. Then it will do some sort of diffing to see what to update.
+
+So, after such a long delay, we finally got to the obvious reason why non-reactive non-imperative Redeclare-On-Every-Update are considered bad for incrementality: because they have to rerun that redeclaration code on every update, and the other systems don't.
+
+But what does that code even do? How slow is it? How does it compare to everything else? Since we went through all these preambles anyway, let's continue, and try to get a better idea.
+
+The first thing to notice is that the library's job doesn't end there. And after this first step, all three kinds of libraries will end up in the same position. They updated the internal element tree, they still have to:
 
 - recompute the layout
 - rasterize new glyphs or relayout text that changed
 - rebuild the render data (triangles, paths or other gpu primitives)
 - rerender the pixels on the screen.
 
-At this point, we're past the point where the interface differences matter. Any library can choose to make any of these computations more or less incremental depending on their performance characteristics, on how much they value memory usage vs speed, internal implementation complexity, etc.
+Again, all these are completely independent of the library's architecture! That's a ton of incrementality that actually doesn't depends on our opinion on reactivity. (Or non-incrementality: as far as I know, partial relayouts are not a fairly popular thing. And most modern GPU-based renderer probably won't bother with a whole lot of incrementality, they'll just have the overpowered GPUs of the current age blast through their handful of shapes in microseconds.)
 
-So, the disadvantage of the "rerun stuff every frame" libraries is that they have to do *some* extra work when something changes. But to understand how much of a difference that really makes for performance, we have to examine what the code that is rerun is actually doing, and how it compares to all the other work that has to be done anyway.
+# The Redeclaration Code
 
+With all the considerations above, we can see that the redeclaration code that non-reactive libraries have to rerun occupies a fairly small place in the big picture of everything that a GUI library has to do. It probably won't be the thing that makes or breaks the incrementality or the performance of a library, unless it's doing something really slow.
 
-# Keru's Redeclaration Code
-
+Next, let's see how expensive the redeclaration code is, by looking at how Keru handles it.
 It turns out that there's really not that much to do.
+
 Looking back at the code above, we're mostly just creating a bunch of `Node`s on the stack, formatting a string, and calling `ui.add()` for each `Node`.
 
 `ui.add()` will hash the visual and layout parameters of the provided Node, and it will do a lookup on a small HashMap to figure out what GUI node we're redeclaring. Then, it will access that node, set its tree links according to the structure of the nest() calls, and schedule a relayout or a repaint if the hashes are different.
@@ -192,13 +199,13 @@ If it's that simple, why did the Redeclare-On-Every-Update even end up with such
 
 - The idea that every sort of tree or list needs to be a horrifically pointer-heavy and cache-inefficient structure spread across N separate heap allocations, rather than a slab and a handful of indices.
 
-These are hopefully all relics of the past. However, there's a scarier one: even though the redeclaration code is usually just a few ui.add() calls, it's still the library user's custom code. The user can always make it arbitrarily bad. Then, he'd be right to complain that the library is slowing his program by reexecuting that code too many times.
+These are hopefully all relics of the past. However, there's a scarier one: even though the redeclaration code is usually just a few ui.add() calls, it's still the library user's custom code. The user can always make it arbitrarily bad. Then, he'd be right to complain that the library is slowing their program by reexecuting that code too many times.
 
 I wasn't really there to see it with my own eyes, but it's not hard to imagine something like this happening to React. When you have a billion people writing React components in Javascript that keeps allocating all sort of crap and having the GC clean it up, you can see why some of these assumptions start to break, and why people start caring about component memoization, state management, or give up on Redeclare-On-Every-Update altogether and move to a reactive system.
 
 Is this something that we should worry about in Rust? Well, yes. There's no GC, but doing a lot of needless heap allocations is still sort of common in Rust code. In fact, my example code above is allocating a string on the heap for no good reason.
 
-In the blog post that explains the Xilem architecture, this is the example that justifies its memoization scheme:
+In the blog post that explains the Xilem architecture, this is the example that justifies its reactivity/memoization scheme:
 
 > Going back to the counter, every time the app logic is called, it allocates a string for the label, even if it’s the same value as before. That’s not too bad if it’s the only thing going on, but as the UI scales it is potentially wasted work. [[1]](https://raphlinus.github.io/rust/gui/2022/05/07/ui-architecture.html)
 
@@ -246,6 +253,3 @@ In Keru, the "Component" trait allows to define reusable blocks of GUI code. Com
 
 
 
-
-
-        Well, obviously the real goal is performance, not incrementality for the sake of it. We only want incrementality as a part of a broader search for more speed, less gpu usage, less power consumption or battery drain, and less heat. This is obvious, but it brings us to note some things:
