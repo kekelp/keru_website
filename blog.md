@@ -77,17 +77,24 @@ A system is retained when it retains a lot of state between frames. We might be 
 
 A system is incremental when a small change to the program's state results in a small amount of recomputation. This is the performance property that the strawman arguments at the beginning are referring to.
 
+If a system doesn't retain any state, it probably won't be able to be very incremental. But any system that retains some of its state can be more or less incremental, depending on its architecture and its other design choices.
+
+
+# Is Incrementality even the most important thing?
+
 - Note that incrementality is not about what happens "every frame", even when the program is fully idle. It's easy for even the most naive immediate-mode libraries to just do nothing where no input is being received at all.
 
 - It's also easy to annotate which GUI elements should react to which input. So clicking on a non-interactive background element still shouldn't result in any needless work, regardless of the architecture.
 
 - So, incrementality is really only about relatively complex GUIs with multiple parts, and in which it's common to interact with some parts while the rest stays still.
 
-If a system doesn't retain any state, it probably won't be able to be very incremental. But any system that retains some of its state can be more or less incremental. The point of this post is to analyze how much the other distinctions affect incrementality.
+    [if you're very incremental, you can get into situations where scrolling and some smaller interactions are very fast, but then once in a while you will have to do a big relayout anyway, and miss a bunch of frames anyway. Is that what we really want to optimize for? In 2026, it feels like we should be able to expect most GUIs to just do their whole non-incremental relayout and rerender in a single frame.]
+
+I don't want to overstate my case here. If the GUI can really do a whole non-incremental relayout and rerender in a single frame, there's no reason why we wouldn't also want incrementality on top of that, so that we can reduce CPU usage, power consumption, battery usage, and heat. However, I think it's fair to say that incrementality is generally not what makes or breaks the performance of a GUI system, and especially not its snappiness.
+
+With that in mind, let's see how much the other distinctions affect incrementality.
 
 In particular, how much incrementality do we lose by not being reactive?
-
-
 
 # How to be incremental
 
@@ -100,9 +107,9 @@ Based on our definitions above, we can consider three different classes of GUI:
 
 In 2026, there's not a whole lot of people who are clamoring for oldschool imperative GUI libraries, but it's useful to consider all three classes.
 
-When an event arrives or some state changes, the GUI system has to do many things. Starting from the top layer, it first has to "consult" the library user's code, to determine what the user wants to change. Depending on the class:
+When an event arrives or some state changes, the GUI system has to do many things. Starting from the top layer, it first has to "run" the library user's code, to determine what the user wants to change. Depending on the class:
 
-1) In an imperative system, the library user's code will literally be a step by step description of what needs to be changed in the tree. Depending on the era, it would probably have to go through a bunch of wrappers, models, viewmodels, and other abstractions, but at the end of the day it would find some code in a callback somewhere that does all the changes that the wants. So the system just runs that code, and does nothing else.
+1) In an imperative system, the library user's code will literally be a step by step description of what needs to be changed in the tree. Depending on the era, it would probably have to go through a bunch of wrappers, viewmodels, and other abstractions. But at the end of them it would find some code in a callback somewhere that lists all the required changes in order. So the system just runs that code, and does nothing else.
 
 2) A Reactive-Programming library will be able to look at what state variables changed, and thanks to the relationships that it already registered, it will automatically know what GUI elements it should update.
 
@@ -129,12 +136,21 @@ Looking back at the code above, we're mostly just creating a bunch of `Node`s on
 
 `ui.add()` will hash the visual and layout parameters of the provided Node, and it will do a lookup on a small HashMap to figure out what GUI node we're redeclaring. Then, it will access that node, set its tree links according to the structure of the nest() calls, and schedule a relayout or a repaint if the hashes are different.
 
-Then, `ui.finish_frame()` will have to actually recompute the layout and rerender. But as we said before, that's the part that would work the same way regardless of the architecture.
+Then, `ui.finish_frame()` will check that no old nodes disappeared, do some minor cleanup, and then actually recompute the layout and rerender. But as we said before, that's the part that would work the same way regardless of the architecture.
 
 `ui.add()` is the sort of function that we can expect to run many thousands of times before we ever get close to showing up in a profiler:
 - it doesn't do any heap allocations.
 - it's decently cache friendly: all the internal InnerNodes are stored in a contiguous Slab. Right now, the `InnerNode` struct is probably a big too big to be able to claim that it's really cache-friendly, but if that turns out to be measurably slow, it could be optimized, moving all the stuff that's not needed for `ui.add()` in a separate place.
 
+In a typical benchmark in Keru, the flamegraph of the redeclaration code breaks down roughly like this:
+
+- Hashmap lookups: 50%.
+- Diffing Nodes (visual and layout parameters): 20%.
+- Diffing text: 20%.
+- Setting tree links: 5%.
+- Whole-tree diffing and cleanup: 5%.
+
+So, for a GUI with N nodes, the whole redeclaration ordeal is of the order of magnitude of 2N hashmap lookups.
 
 If it's that simple, why did the Redeclare-On-Every-Update even end up with such a bad reputation in the first place? There's a few things that we can blame:
 
