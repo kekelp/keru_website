@@ -1,9 +1,18 @@
+# Against Reactive GUI
 
-This first post is about the concepts of "Reactive" GUI and how relevant it is in the design of GUI libraries.
+This a blog post about the concept of "Reactive" GUI and its relevance in the design of GUI library.
 
-Keru is a "declarative" library, but it's not "reactive".
+My opinions on this topic were formed in the last two years as I was working on a new GUI library for Rust, which I named [Keru](https://github.com/kekelp/keru). Nowadays, the standards for calling a GUI library "complete" are quite high, and some people would probably say that it's not complete until it comes bundled together with a full browser engine. I haven't gotten there yet, but I still think that it's a good time to start sharing the library and the ideas behind it.
 
-Keru code looks like this:
+
+Keru is a "declarative" library, but as you can probably guess by the title, it's not "reactive". 
+
+This post will try to define all the relevant terms, and give an overview of how the different axes in the design space interact with each other. Then, it will do some considerations on performance and usability, bringing in examples from Keru.
+
+It will try to argue that it's not worth it to make it a fundamental part of a library's programming model. However, it's still great to have *some* degree of opt-in reactivity for the cases where it's actually needed, and it will show Keru's approach on this.
+
+
+To start off with something concrete before getting into the definitions, I will show some Keru code. This is what it looks like:
 
 ```rust
 fn update_ui(state: &mut State, ui: &mut Ui) {
@@ -27,45 +36,26 @@ fn update_ui(state: &mut State, ui: &mut Ui) {
         state.count += 1;
     }
 }
+
+fn main() {
+    example_window_loop::run_example_loop(State::default(), update_ui);
+}
 ```
 
-All this code is run on every update. Is this a bad thing?
+All this code in `update_ui` is run on every update. Is this a bad thing?
 There's probably many people who would say yes. They might be thinking things like these:
 
 - Oldschool imperative/retained-mode GUI systems were just better, because you'd just write the code for what you want to happen, instead of writing a high level declaration of what you want and having the library diff things to figure it out for you.
 
-- Anything that looks like immediate mode is especially bad, because you're rerunning a bunch of code on every update.
+- Anything that looks like "immediate mode" is especially bad, because you're rerunning a bunch of code on every update.
 
 - If anything, you should use a "reactive" system, where the library can keep track of which parts of your state affect which parts of your declarative model. And it better be "fine grained reactivity"!
 
-The point of this post is to answer all these concerns.
+What they're saying is that you have to make your system "reactive" if you want to be "incremental".
 
 # Definitions
 
-Many of these words are used with different meanings by different people, so I'll have to spend some time explaining the sense in which they are used in this post.
-
-## Declarative / Imperative
-
-This is a property of how the library user's code looks like.
-
-In a declarative system, the user writes a single description of the whole GUI. Keru's syntax above is declarative. Other examples are SwiftUI, `egui`, or React.
-
-In contrast, in an imperative system, the user sets up a static initial state, and then manually writes the imperative changes that should happen as a result of input or other events.
-This was never very popular, so people wrote plenty of user-level abstractions to try to hide this. But under the hood, you'd still find the manual changes to the retained tree.
-
-## Reactive Programming / Redeclare-On-Every-Update
-
-This is the most important distinction, between two ways of building declarative GUI systems.
-
-Maybe someone can come up with a better term, but for now, I will use the term "Redeclare-On-Every-Update" to describe the systems where the GUI declaration is written in real code, and that whole code is re-executed on every update, to get a fresh new declaration of the target state of the GUI.
-
-Keru's code above fits in this category, as well as egui and Dear Imgui and React. In this kind of system, you can use real language-level control flow to express the dynamicity of your GUI: a simple `if` for a conditionally-visible element, or a simple `for` for a dynamic list of elements.
-
-On the other hand, I will use the term "Reactive Programming" to describe the systems like SwiftUI or SolidJS. In these systems, you write a static declaration of the GUI that is evaluated just once, in some sort of compilation step. The compiler statically analyzes how your declaration depends on the state variables, and inserts something like "setter methods" for them, which make sure that any change in the variable will be followed by a change in the GUI.
-
-In this kind of system, the declarative form will have some sort of pseudo-control-flow structures that get compiled down statically. In SwiftUI, there's extensive compiler magic that can turn language-level `if`s and `for`s into those kind of structures, but that has limitations.
-
-Note that despite the name, vanilla React is Redeclare-On-Every-Update, not Reactive-Programming.
+But we can't go on without defining the precise sense in which we're using these words. Unfortunately, many of these words are used with very different meanings by different people.
 
 ## Retained
 
@@ -73,20 +63,62 @@ This is a property of how a GUI system is implemented internally.
 
 A system is retained when it retains a lot of state between frames. We might be tempted to say that "Immediate" is the opposite of that. However, the word "Immediate" has been used with so many different and confusing meanings, that it's better to use it as little as possible.
 
+In this sense, Keru is retained: you can see that there's a `Ui` object that holds all the state. It never throws away anything.
+
+
+## Declarative / Imperative
+
+This is a property of how the library user's code looks like.
+
+In a declarative system, the user writes a single description of the whole GUI, that uses control flow or control-flow-like structures to express the whole dynamic state of the whole GUI.
+
+Keru's code above is declarative, using the Rust's real control flow. Other examples are Angular, SolidJS, SwiftUI, `egui`, Iced, React... probably hundreds more. It's pretty popular.
+
+In contrast, in an imperative system, the user sets up a static initial state, and then manually writes the imperative changes that should happen as a result of input or other events.
+
+In the current year, this is not very popular anymore. It feels a bit like opening a coffin with cobwebs all over it. The obvious downside is that after enough imperative mutations, the state of the GUI gets farther and farther from anything written in your code. To understand what's going on, you have to track of all the mutations and play them back inside your head. But for a GUI that never strays very far from its initial state, maybe it's fine.
+
+Even in the old days, this was never very popular, so people wrote plenty of user-level abstractions to try to hide it. But under the hood, you'd still find explicit changes to the retained tree.
+
+## Reactive / Redeclare-On-Every-Update
+
+This is the most important distinction, between two ways of building declarative GUI systems.
+
+Maybe someone can come up with a better term, but for now, I will use the term "Redeclare-On-Every-Update" to describe the systems where the GUI declaration is written in real code, and that whole code is re-executed on every update, to get a fresh new declaration of the target state of the GUI.
+
+Keru's code above fits in this category, as well as egui and Dear Imgui and React. In this kind of system, you can use real language-level control flow to express the dynamic range of states of your GUI: a simple `if` for a conditionally-visible element, or a simple `for` for a dynamic list of elements.
+
+On the other hand, I will use the term "Reactive" to describe the systems like SwiftUI or SolidJS.
+
+In these systems, when you write a declaration of the GUI, the system will try go through it ahead of time, ideally just once, and analyze the dependencies between the data and the elements of the GUI. Then, it will wire up a system of observers and callbacks so that every change in the state can automatically trigger the desired change in the GUI.
+
+In this kind of system, the declarative form will have some sort of pseudo-control-flow structures that get compiled down statically. In SolidJS, this `<Show> ... </Show>` is a pseudo-`if`, and `<For> ... </For>` is a pseudo-`for`. In SwiftUI, there's compiler magic that can turn language-level `if`s and `for`s into those kind of structures.
+
+Note that despite the name, vanilla React is Redeclare-On-Every-Update, not Reactive.
+
 ## Incremental
 
-A system is incremental when a small change to the program's state results in a small amount of recomputation. This is the performance property that the strawman arguments at the beginning are referring to.
+A system is incremental when a small change to the program's state results in a small amount of recomputation.
 
 If a system doesn't retain any state, it probably won't be able to be very incremental. But any system that retains some of its state can be more or less incremental, depending on its architecture and its other design choices.
 
+Incrementality is a property of the system's performance, and it's the one that the strawmanned arguments at the beginning are referring to.
+If the previous properties are the "axes" of the design space, incrementality is the value of the function we're trying to optimize. The point of this post is to see how much incrementality we can achieve from different points in the declarative/imperative, retained/non-retained, and especially reactive/redeclare-on-every-update space.
 
-# Is Incrementality even the most important thing?
 
-- Note that incrementality is not about what happens "every frame", even when the program is fully idle. It's easy for even the most naive immediate-mode libraries to just do nothing where no input is being received at all.
+## The Basics
 
-- It's also easy to annotate which GUI elements should react to which input. So clicking on a non-interactive background element still shouldn't result in any needless work, regardless of the architecture.
+Actually, before getting into that, we should note that there's some basic layer of incrementality that we should be able to get regardless of all those other properties.
 
-- So, incrementality is really only about relatively complex GUIs with multiple parts, and in which it's common to interact with some parts while the rest stays still.
+- It's easy for even the most naive immediate-mode libraries to just do nothing where no input is being received at all. We can pick any combination of non-retained or non-reactive library, that will *never* justify a GUI program burning CPU for no reason while it's completely idle.
+If that happens, it's not because of any design decision or architectural choice: you're probably using a library that was only meant to be used inside a game. Or maybe the author of the library forgot an `if`.
+
+- It's also easy to annotate which GUI elements should react to which input. So if the user is clicking on a non-interactive background element, or just moves the mouse around, that still shouldn't result in any needless work.
+
+- So, the incrementality that we're talking about here is really only about relatively complex GUIs with multiple parts, and in which it's common to interact with some parts while the rest stays still.
+
+
+
 
     [if you're very incremental, you can get into situations where scrolling and some smaller interactions are very fast, but then once in a while you will have to do a big relayout anyway, and miss a bunch of frames anyway. Is that what we really want to optimize for? In 2026, it feels like we should be able to expect most GUIs to just do their whole non-incremental relayout and rerender in a single frame.]
 
@@ -102,7 +134,7 @@ Based on our definitions above, we can consider three different classes of GUI:
 - However, there's these three types of GUI:
 
     1) Oldschool imperative GUI
-    2) Reactive-Programming declarative GUI
+    2) Reactive declarative GUI
     3) Redeclare-On-Every-Update declarative GUI
 
 In 2026, there's not a whole lot of people who are clamoring for oldschool imperative GUI libraries, but it's useful to consider all three classes.
@@ -111,7 +143,7 @@ When an event arrives or some state changes, the GUI system has to do many thing
 
 1) In an imperative system, the library user's code will literally be a step by step description of what needs to be changed in the tree. Depending on the era, it would probably have to go through a bunch of wrappers, viewmodels, and other abstractions. But at the end of them it would find some code in a callback somewhere that lists all the required changes in order. So the system just runs that code, and does nothing else.
 
-2) A Reactive-Programming library will be able to look at what state variables changed, and thanks to the relationships that it already registered, it will automatically know what GUI elements it should update.
+2) A Reactive library will be able to look at what state variables changed, and thanks to the relationships that it already registered, it will automatically know what GUI elements it should update.
 
 3) A Redeclare-On-Every-Update library will have to rerun all the declarative code that the library user provided. Then it will do some sort of diffing to see what to update.
 
@@ -211,3 +243,9 @@ Even if we don't make it a core part of our programming model, it turns out that
 In Keru, the "Component" trait allows to define reusable blocks of GUI code. Components can also manage their own state. The next post will show some examples of using Components to make pseudo-reactive components.
 
 
+
+
+
+
+
+        Well, obviously the real goal is performance, not incrementality for the sake of it. We only want incrementality as a part of a broader search for more speed, less gpu usage, less power consumption or battery drain, and less heat. This is obvious, but it brings us to note some things:
