@@ -132,26 +132,25 @@ Now let's finally look at how the properties defined at the start affect increme
 
 We won't actually consider retainedness very much, because it's an implementation detail, and it doesn't actually have many tradeoffs other than some memory usage. We'll just assume that if a system can retain more some state to be more incremental or more efficient, it will figure out a good way to do so without bothering anybody.
 
-Looking at the remaining properties, we can consider three different classes of GUI:
-
-1) Oldschool imperative GUI
-
-2) Reactive declarative GUI
-
-3) Redeclare-On-Every-Update declarative GUI
-
 What does the program do when the user interacts with the GUI and changes some state?
 At a very abstract level, we might say that it has to figure out what the library user wants to happen, then make it happen.
+Looking at the remaining properties, we can consider three different classes of GUI, and see what they would do:
 
-Depending on the class:
 
-1) In an imperative system, the library user's code will literally be a step by step description of what needs to be changed in the tree. So the system just runs that code, and does nothing else.
+1) Oldschool imperative GUI.
+    
+    - In an imperative system, the library user's code will literally be a step by step description of what needs to be changed in the tree. So the system just runs that code, and does nothing else.
 
-2) In a reactive system, the library will have pre-computed a dependency graph that will immediately tell it what GUI elements it should update.
+2) Reactive declarative GUI.
+    
+    - In a reactive system, the library will have pre-computed a dependency graph that will immediately tell it what GUI elements it should update.
 
-3) In a Redeclare-On-Every-Update system, the library will have to rerun all the declarative code that the library user provided. Then it will do some sort of diffing to see what to update.
+3) Redeclare-On-Every-Update declarative GUI.
+    
+    - In a Redeclare-On-Every-Update system, the library will have to rerun all the declarative code that the library user provided. Then it will do some sort of diffing to see what to update.
 
-So, after such a long delay, we finally got to the obvious reason why non-reactive non-imperative Redeclare-On-Every-Update are considered bad for incrementality: because they have to rerun that redeclaration code on every update, and the other systems don't.
+
+So, after all this time, we finally got to the obvious reason why nonRedeclare-On-Every-Update libraries are considered bad for incrementality: because they have to rerun that redeclaration code on every update, and the other systems don't.
 
 But what does that code even do? How slow is it? How does it compare to everything else? Since we went through all these preambles anyway, let's continue, and try to get a better idea.
 
@@ -168,14 +167,26 @@ Again, all these are completely independent of the library's architecture! That'
 
 With all the considerations above, we can see that the redeclaration code that non-reactive libraries have to rerun occupies a fairly small place in the big picture of everything that a GUI library has to do. It probably won't be the thing that makes or breaks the incrementality or the performance of a library, unless it's doing something really slow.
 
-Next, let's see how expensive the redeclaration code is, by looking at how Keru handles it.
+Let's see how expensive the redeclaration code is by looking at how Keru handles it.
+
 It turns out that there's really not that much to do.
 
-Looking back at the code above, we're mostly just creating a bunch of `Node`s on the stack, formatting a string, and calling `ui.add()` for each `Node`.
+Looking back at the code above, this is what the code is doing:
 
-`ui.add()` will hash the visual and layout parameters of the provided Node, and it will do a lookup on a small HashMap to figure out what GUI node we're redeclaring. Then, it will access that node, set its tree links according to the structure of the nest() calls, and schedule a relayout or a repaint if the hashes are different.
+- Creating some `Node`s on the stack.
+- Formatting a string.
+- Calling `ui.add()`. This does three things:
 
-Then, `ui.finish_frame()` will check that no old nodes disappeared, do some minor cleanup, and then actually recompute the layout and rerender. But as we said before, that's the part that would work the same way regardless of the architecture.
+    - Do a lookup on a small HashMap to figure out what GUI node we're redeclaring. 
+    - Access that node and compare it the new one that we passed. If it's different, it schedules a relayout.
+    - Reset the tree links according to the structure of the `nest()` calls.
+
+- Then, hidden in the `run_example_loop`, `ui.finish_frame()` checks that no old nodes disappeared, does some minor cleanup, and then actually recompute the layout and rerender. But as we said before, that's the part that would work the same way regardless of the architecture. 
+
+
+
+
+
 
 `ui.add()` is the sort of function that we can expect to run many thousands of times before we ever get close to showing up in a profiler:
 - it doesn't do any heap allocations.
@@ -234,7 +245,7 @@ Well, actually, all I did was explain why redeclaring on every update doesn't ha
 
 At the end of the day, that's a subjective thing: a matter of aesthetics. However, I feel like these aesthetic concerns are still very important. 
 
-At this point, there's really no shortage or experimental GUI libraries in Rust, trying out all sorts of programming models. But none has really caught on, and none really seems to generate the sort of enthusiasm that people have for other libraries or for Rust itself. There's probably many different reasons for this, but one of the main ones is that the user-friendliness of many of these libraries remains low.
+At this point, there's really no shortage of experimental GUI libraries in Rust, trying out all sorts of programming models. But none has really caught on, and none really seems to generate the sort of enthusiasm that people have for other libraries or for Rust itself. There's probably many different reasons for this, but one of the main ones is that the user-friendliness of many of these libraries remains low.
 
 The library users are expected to internalize many concepts about "contexts" or "registers", to lay out all their state into special library-provided containers, or to write all their logic inside closures or trait impls. 
 
