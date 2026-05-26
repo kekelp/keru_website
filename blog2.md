@@ -61,7 +61,7 @@ fn main() {
 ```
 
 The `Ui` struct retains the whole state of the GUI, so this is not an "immediate mode" library (at least not in that sense.)
-The `update` function runs on every update and redeclares the whole desired state of the GUI. Any nodes that we wouldn't redeclare would be removed automatically.
+The `update` function runs on every update and redeclares the whole desired state of the GUI. Then, the retained tree is updated to match the declared state.
 
 ## Simplicity
 
@@ -77,9 +77,8 @@ Nowadays it's fairly popular to spend an afternoon to throw together a half-bake
 
 I won't try to claim that Keru is a "full-featured GUI library", because that probably includes things like bundling an entire web browser or a webview. But I think that it's full-featured *enough* to demonstrate that it's possible to scale up all the way without sacrificing the original simplicity. "Simple things should be simple, complex things should be possible".
 
-Keru's more avanced features include components with encapsulated state, advanced layout and grids, drag and drop, canvas drawing, imperative tree manipulation, integration with custom winit and wgpu, etc.
+Keru's more advanced features include components with encapsulated state, advanced layout and grids, drag and drop, canvas drawing, imperative tree manipulation, integration with custom winit and wgpu, etc.
 
-<!-- Try to convinve that this is a "simple things simple, complex things possible" situation, there is also more stuff like components with encapsulated state, advanced layout with grids and stuff, drag and drop, canvas drawing, imperative tree manipulation, integration with custom winit and wgpu, etc.  -->
 
 ## Flexibility
 
@@ -108,40 +107,28 @@ Keru's more avanced features include components with encapsulated state, advance
 
 ## Performance
 
-Keru code sort of looks like immediate mode. Isn't that extremely wasteful and slow?
+Keru code sort of looks like "immediate mode". Isn't that extremely wasteful and slow?
 
-People mean a lot of different things when they say "immediate mode". In this section, I will use the term in the way I think most Rust users understand it, even if that's not what it originally used to mean.
+People mean a lot of different things when they say "immediate mode". In this section, I will use the term in the way I think most Rust programmers understand it, even if that's not what it originally used to mean.
 
 Anyway, even if Keru code sort of looks like it, it's not immediate mode in the sense that it keeps recomputing a lot of things needlessly. As mentioned before, the full state of the GUI is always retained inside `Ui` struct, and the declarative code just updates it as needed.
 
-However, it's true that Keru is usually rerunning the user's full redeclaration code on every update (not on every frame). According to some of the biggest fans of the "reactive" concept, even this is an unforgiveable mistake, and the only valid architecture is one where the user declares the GUI only once at the beginning. Otherwise, the cost of redeclaring things on every update will just get out of control.
+However, it's true that Keru is usually rerunning the user's full declaration code on every update (not on every frame). According to some of the biggest fans of the "reactive" concept, even this is an unforgivable mistake, and the only valid architecture is one where the user declares the GUI only once at the beginning. Otherwise, the cost of redeclaring things on every update will just get out of control.
 
 First, Keru does actually have some experimental ways to skip redeclaring: after all, the whole tree is always retained, so if we know that a branch will stay unchanged, we can just keep it as it is. But doing this automatically and transparently requires complicated dependency tracking which tends to come at great cost in terms of flexibility, as mentioned in the last section.
 It's not very reasonable to expect Rust programmers to stick all their state in special reactive containers
 
+Second, we have to keep in mind that many systems already redeclare everything on every update, and it's really not a problem. For example, Iced does it. The reason why people aren't mad about it seems to be just that the code looks different enough from the dreaded "immediate mode" to not raise suspicion.
 
-Second, we have to keep in mind that many systems already redeclare everything on every update, and it's really not a problem. For example, Iced does it. The reason why people aren't mad about it seems to be just about the code being different enough from the dreaded "immediate mode" to not raise suspicion.
+Besides the abstract arguments, it's useful to look at what the declaration code is actually doing. Many of the people who assume that this is expensive probably got their impression from the early discussions around React, which was creating a brand new tree to represent the state of the GUI, and then comparing it to the retained one to know what to update. Both trees probably also happened to be sprawling pointer jungles on the Javascript garbage-collected heap.
 
-<!-- - muh immediate mode. first, point out that everything already works like this. iced, react, jetpack compose... -->
+What if we didn't do that, and applied some common sense? In Keru, whenever we `add()` a node, the function reaches into the retained tree, and it either finds the old version of the node, or creates it from scratch. If it finds an old node, it "touches" it, and updates its parameters. The properties of the new node are immediately diffed against the old one.
 
-Besides the abstract arguments, it's useful to look at what the declaration code is actually doing. When people assume that this is expensive, their impression probably comes from the early discussion around React, which was creating a brand new tree to represent the state of the GUI, and then comparing it to the retained one to know what to update. Both trees probably also happened to be sprawling pointer jungles on the Javascript garbage-collected heap.
+Then, at the end, we have to do a quick linear scan over the nodes to remove any "untouched" ones.
 
-What if we didn't do that, and applied some common sense? In Keru, whenever we `add()` a node, it reaches into the retained tree, and it either finds the old version of itself or inserts it into a new slot. If it finds an old node, it "touches" it, and updates its parameters. The properties of the new node are immediately diffed against the old one.
+How efficient do we expect this to be? To give a rough idea of the order of magnitude, the N hashmap lookups to find the old node in the tree account for about 50% of the whole redeclaration time in the profiling that I've done.
 
-Then, at the end, we have to do a quick linear scan over the nodes to cleanup any "untouched" ones.
-
-How efficient do we expect this to be? To give an idea of the order of magnitude, the N hashmap lookups to find the old node in the tree account for about 50% of the whole redeclaration time.
-
-<!-- - we can redeclare and diff without creating a separate tree or anything like that. Whenever we add() a node, it reaches into the retained tree, and either creates a new one or "touches" the old one and updates its parameters. If the visual or layout parameters are different, it schedules a relayout or a rerender. -->
-
-
-<!-- - isn't this still work that """reactive""" or imperative libraries just skip?
-- yes, but flexibility also matters.  -->
-
-
-<!-- - and anyway, short segment on why reactivity is overrated anyway. Probably just the "every update not every frame" part, briefly the "redeclaration is a small part anyway, we have to do all this relayout and rerendering" part, and the "just use an arena" part. -->
-
-Even reasoning in absolute terms, it's easy to feel like one or two hashmap lookups for each GUI node shouldn't be something that we should be scared of, if it buys us something significant in terms of flexibility or simplicity. But the most important thing is how this compares to the rest of the work that the GUI has to do every time something happens:
+Even reasoning in absolute terms, it's easy to feel like one or two hashmap lookups for each GUI node shouldn't be something that we should be scared of, if it buys us something significant in terms of flexibility or simplicity. But the most important thing is how this compares to all the other work that the GUI has to do every time something happens:
 
 - recompute the layout,
 - update animations,
@@ -149,7 +136,7 @@ Even reasoning in absolute terms, it's easy to feel like one or two hashmap look
 - rebuild the render data,
 - and finally rerender the pixels on the screen.
 
-This all scales with N, and it's all internal, so it can be optimized or pessimized regardless of the shape of the user-facing API. If all of this word is done inefficiently, the library will be slow regardless of any advanced reactive architecture. If it's done efficiently, it will be fine either way. At the end of the day, rerunning some declaration code just won't be what makes the difference between an efficient library and a slow or wasteful one.
+This all scales with N as well, and it's all internal, so it can be optimized or pessimized regardless of the shape of the user-facing API. If all of this work is done inefficiently, the library will be slow regardless of any advanced reactive architecture. If it's done efficiently, it will be fine either way. At the end of the day, rerunning some declaration code just won't be what makes the difference between an snappy and efficient library and a slow or wasteful one.
 
 What should we do to optimize all of that? Well, because it's not linked to anything about the library that's visible from outside, it's not very interesting to go into the details.
 
@@ -158,18 +145,14 @@ For glyph rasterization, text shaping and layout, Keru uses Parley and Swash, so
 For everything else, it just boils down to some basic data-oriented-programming and being disciplined about short-lived allocations.
 
 It turns out that it's plenty enough: here is an example (`ten_thousands.rs`) showing a non-virtualized list of 10k elements. 
-With the Ryzen 7 in my 5-year old laptop, I can scroll and interact with it at 165 fps without issues. 10k is not a big number for a computer!
+With the Ryzen 7 5800H in my laptop from 2021, I can scroll and interact with it at the full 165 Hz of my display without any issues. 10k is not a big number for a computer!
 
 [ example video ]
 
-There's also space for more optimizations to improve cache efficiency, but I don't want to get to them before the code starts to feel more stable.
+There's also space for more optimizations to improve cache efficiency, but I don't want to get to them while the code is still in flux. With a bit more optimization and maybe a newer CPU, we can probably go much higher than 10k.
 
-<!-- - Most advanced cache efficiency optimizations not done yet to keep the code simple while it's in flux, but were tried a bit. definitely potential for even more performance if needed. Stop making excuses! GUI should be fast. -->
+Keru also uses a custom `wgpu` renderer, but I don't have a precise idea of how much that helps. In the example above it doesn't matter, because most elements are far offscreen and can be efficiently culled by any renderer. It's only testing the redeclaration, layout, animation updates, and the rest of the CPU-side code that can't be trivially skipped.
 
-Keru also uses a custom `wgpu` renderer, but I don't have a precise idea of how much that helps or hurts. In the example above it doesn't matter, because most elements are far offscreen and can be efficiently culled by any renderer.
-It's a very simple and efficient renderer, but it does cut some corners: it can't do arbitrary path fills, non-rectangular clipping, or "layered blending" (I'm not sure what the real term for this is).
+It's a very simple and efficient renderer that can draw plenty of shapes, including rounded rectangles, circles, triangles, hexagons, line segments, and quadratic Bézier curves. But it does cut some corners: it can't do arbitrary path fills, non-rectangular clipping, or "layered blending" (I'm not sure what the real term for this is).
 
 It would be cool to have a more modern compute-based renderer that can do all these effects, but I'm probably not writing another renderer from scratch any time soon. The most realistic option would be to switch to `vello` in the future, which would also be a great way to get a cpu-software backend.
-<!-- 
-
-- Very fast custom renderer. Single draw call with branchy shader, one quad per primitive. Very simple and works great. Would still be cool to have a more modern compute-based renderer for partial blending and other more advanced effects, but I'm probably not writing another renderer from scratch any time soon. Still open to using vello if it gets more usable and stable in the future. -->
