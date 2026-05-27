@@ -3,17 +3,17 @@ been a great way to experiment with all sorts of ideas about GUI and library des
 
 In this blog post, I want to talk a bit about the library and share some of the ideas that went into it.
 
-The first question, of course, is why? Why do anything at all, really? This is not an easy question to answer in general, but for my specific case of making a GUI library, there are plenty of good reasons:
+The first question, of course, is why? Why do anything at all, really? This is not an easy question to answer in general, but for the specific case of making a GUI library, there are plenty of good reasons:
 
 - It looks like people want more libraries. "What GUI library should I use" is probably one of the most asked question about Rust, but at the same time, the space doesn't feel very crowded at all. There's a few well-known ones, but people don't really seem to be fully satisfied with them.
 
-- there's crates that solve most of the more annoying problems, like reliable cross-platform support and text.
+- nowadays, there are crates that solve most of the more annoying problems, like reliable cross-platform windowing and rendering, as well as high quality text.
 
-- It's a very wide and open-ended design space, with lots of different ideas and approaches still to try. The API of the library, the primitives and components that the library provides, the default visual appearance of the GUI, are all things that matter a lot, and there's an infinite number of big and small ways in which they can be tweaked.
+- There's plenty of space for new ideas, interesting tradeoffs, and creativity. The API of the library, the primitives and components that the library provides, the default visual appearance of the GUI, are all things that matter a lot, and there's an infinite number of big and small ways in which they can be tweaked.
 
 - It's fun to see something nice and colorful showing up.
 
-The next question is, in what way is Keru trying to improve on the current situation?
+The next question is, what's new or interesting about this library?
 Most of the ideas in Keru are meant to help in one of three directions:
 
 - Simplicity and understandability of the architecture and of the library as a whole.
@@ -65,7 +65,6 @@ The `update` function runs on every update and redeclares the whole desired stat
 
 ## Simplicity
 
-Simplicity is the most important thing. 
 
 <!-- - Simplicity is the most important thing. Nobody is using all these libraries because they're too hard to use. You can't require hours of study from a user to even get started, just to then hit them "you can't even have properly rendered text, btw". Let's try to be a bit more humble! -->
 
@@ -75,9 +74,9 @@ Simplicity is the most important thing.
 
 Nowadays it's fairly popular to spend an afternoon to throw together a half-baked library that claims to solve some problem, then show everyone how much simpler it is compared to the full-featured alternatives. But at the same time, I think most people would agree by now that the software world has accumulated a lot of complexity that in an ideal world we'd do without.
 
-I won't try to claim that Keru is a "full-featured GUI library", because that probably includes things like bundling an entire web browser or a webview. But I think that it's full-featured *enough* to demonstrate that it's possible to scale up all the way without sacrificing the original simplicity. "Simple things should be simple, complex things should be possible".
+I won't try to claim that Keru is a "full-featured GUI library", because that probably includes things like bundling an entire web browser or a webview. But I think that it has enough features to demonstrate that it's possible to scale up all the way without sacrificing the original simplicity. "Simple things should be simple, complex things should be possible".
 
-Keru's more advanced features include components with encapsulated state, advanced layout and grids, drag and drop, canvas drawing, imperative tree manipulation, integration with custom winit and wgpu, etc.
+Keru's more advanced features include components with encapsulated state, advanced layout and grids, drag and drop, canvas drawing, optional imperative tree manipulation, integration with custom winit and wgpu code, etc.
 
 
 ## Flexibility
@@ -101,9 +100,8 @@ Keru's more advanced features include components with encapsulated state, advanc
 
 - Not reactive by default, which means full flexibility about where to store state. If the program does anything interesting at all with the state besides displaying it in the gui, chances are that it won't be happy about having to fetch it from the GUI library's weird reactive containers! Full control over the data layout is also the #1 important thing for performance.
 
-
-
 - manual reactivity with readd_branch, and how doing manual change tracking isn't that hard to do at a component boundary, and how you can even make the component implicitly hold some state like a hash of the previous arguments.
+
 
 ## Performance
 
@@ -113,10 +111,9 @@ People mean a lot of different things when they say "immediate mode". In this se
 
 Anyway, even if Keru code sort of looks like it, it's not immediate mode in the sense that it keeps recomputing a lot of things needlessly. As mentioned before, the full state of the GUI is always retained inside `Ui` struct, and the declarative code just updates it as needed.
 
-However, it's true that Keru is usually rerunning the user's full declaration code on every update (not on every frame). According to some of the biggest fans of the "reactive" concept, even this is an unforgivable mistake, and the only valid architecture is one where the user declares the GUI only once at the beginning. Otherwise, the cost of redeclaring things on every update will just get out of control.
+However, it's true that Keru is usually rerunning the user's full declaration code on every update (not on every frame). According to some of the biggest fans of the "reactive" concept, even this is an unforgivable mistake, and the only efficient architecture is one where the user declares the GUI only once at the beginning. Otherwise, the cost of redeclaring things on every update will just get out of control.
 
-First, Keru does actually have some experimental ways to skip redeclaring: after all, the whole tree is always retained, so if we know that a branch will stay unchanged, we can just keep it as it is. But doing this automatically and transparently requires complicated dependency tracking which tends to come at great cost in terms of flexibility, as mentioned in the last section.
-It's not very reasonable to expect Rust programmers to stick all their state in special reactive containers
+First, Keru does actually have some experimental ways to skip redeclaring: after all, the whole tree is always retained, so if we know that a branch will stay unchanged, we can just keep it as it is. But doing this automatically and transparently requires complicated dependency tracking which tends to come at great cost in terms of flexibility and simplicity, as mentioned in the last section.
 
 Second, we have to keep in mind that many systems already redeclare everything on every update, and it's really not a problem. For example, Iced does it. The reason why people aren't mad about it seems to be just that the code looks different enough from the dreaded "immediate mode" to not raise suspicion.
 
