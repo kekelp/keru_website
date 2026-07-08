@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # record_example.sh <example-name> [out.mp4]
 #
-# Launches a cargo example, records its window with ffmpeg (X11),
+# Launches a cargo example, records just its window with ffmpeg (X11),
 # and stops automatically when you close the example.
 set -euo pipefail
 
@@ -17,11 +17,13 @@ out="$outdir/${2:-$ex.mp4}"
 
 # The keru crate lives alongside this blog repo.
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-keru_manifest="$script_dir/../../keru/Cargo.toml"
-if [[ ! -f "$keru_manifest" ]]; then
-    echo "cannot find keru Cargo.toml at $keru_manifest" >&2
+keru_dir="$script_dir/../../keru"
+if [[ ! -f "$keru_dir/Cargo.toml" ]]; then
+    echo "cannot find keru Cargo.toml in $keru_dir" >&2
     exit 1
 fi
+# Resolve the output to an absolute path before we cd away.
+out="$(cd "$outdir" && pwd)/$(basename "$out")"
 
 # If the output already exists, rename it out of the way instead of overwriting.
 if [[ -e "$out" ]]; then
@@ -31,54 +33,26 @@ if [[ -e "$out" ]]; then
     echo "renamed existing $out -> $backup"
 fi
 
-# Build first so the compile step doesn't race the window-detection poll.
-echo "building $ex ..."
-cargo build --manifest-path "$keru_manifest" --example "$ex"
-
-# Snapshot existing visible windows.
-mapfile -t before < <(xdotool search --onlyvisible "" 2>/dev/null || true)
-
-# Launch the example.
-cargo run --manifest-path "$keru_manifest" --example "$ex" &
+# Launch the example from inside the keru repo, so it runs exactly as it
+# would there (picks up .cargo/config.toml, working-dir-relative paths, etc.).
+( cd "$keru_dir" && cargo run --example "$ex" ) &
 cargo_pid=$!
 
-# Wait for a NEW visible window to appear.
-wid=""
-for _ in $(seq 1 150); do
-    while read -r w; do
-        [[ -z "$w" ]] && continue
-        found=0
-        for b in "${before[@]}"; do
-            [[ "$w" == "$b" ]] && { found=1; break; }
-        done
-        if [[ $found -eq 0 ]]; then
-            wid="$w"
-            break
-        fi
-    done < <(xdotool search --onlyvisible "" 2>/dev/null || true)
-    [[ -n "$wid" ]] && break
-    sleep 0.2
-done
-
-if [[ -z "$wid" ]]; then
-    echo "no window appeared" >&2
-    kill "$cargo_pid" 2>/dev/null || true
-    exit 1
-fi
-
-# Let the window finish mapping/sizing, then read the client-area geometry.
-# xwininfo's "Absolute upper-left" + width/height is the inner content area,
-# excluding the WM title bar and borders.
-sleep 0.3
-info="$(xwininfo -id "$wid")"
-X=$(awk '/Absolute upper-left X/ {print $4}' <<<"$info")
-Y=$(awk '/Absolute upper-left Y/ {print $4}' <<<"$info")
-WIDTH=$(awk '/Width:/ {print $2}' <<<"$info")
-HEIGHT=$(awk '/Height:/ {print $2}' <<<"$info")
+# Give the window a moment to appear, then grab the example's own window.
+# The freshly launched example takes focus, so the active window is ours.
+sleep 1
+win="$(xdotool getactivewindow)"
+# xwininfo reports the true absolute position on the root window, unlike
+# xdotool's geometry X/Y which can be relative to the parent/decorations.
+info="$(xwininfo -id "$win")"
+X=$(echo "$info" | awk '/Absolute upper-left X/ {print $NF}')
+Y=$(echo "$info" | awk '/Absolute upper-left Y/ {print $NF}')
+WIDTH=$(echo "$info" | awk '/Width:/ {print $NF}')
+HEIGHT=$(echo "$info" | awk '/Height:/ {print $NF}')
 W=$(( WIDTH - WIDTH % 2 ))
 H=$(( HEIGHT - HEIGHT % 2 ))
 
-echo "recording window $wid (${W}x${H} at +${X},${Y}) -> $out"
+echo "recording ${W}x${H} at +${X},${Y} -> $out"
 ffmpeg -f x11grab -framerate 30 -video_size "${W}x${H}" -i ":0+${X},${Y}" \
     -c:v libx264 -preset veryfast -pix_fmt yuv420p "$out" &
 ff_pid=$!
