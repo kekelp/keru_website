@@ -14,9 +14,10 @@ In this layout, the multi-line paragraph fits to the width of the single-line la
 
 The first thing I did was trying to implement the `clay` algorithm in Keru, and despite lobotomizing myself with a lot of AI assistance, I think I understood its algorithm well enough to conclude that it couldn't possibly solve this case.
 
-To be clear, I don't think this is necessarily a problem: especially in the case of `clay` there's nothing wrong with sticking to a simpler and faster algorithm if it works for a specific application. There's plenty of GUI programs that work great without any advanced layouts of this kind and don't run into any of these problems. 
+To be clear, I don't think this is necessarily a problem: especially in the case of `clay` there's nothing wrong with sticking to a simpler and faster algorithm if it works for the intended application. There's plenty of GUI programs that work great without any advanced layouts of this kind and don't run into any of these problems.
 
-I also did some experiments with CSS layout, and concluded that it can't solve it either. This was a lot harder because of how complicated CSS is: it's still entirely possible that CSS has a way to solve it, and I just didn't find the correct magic word to make it happen. What I can say with certainty is that writing it in the obvious way doesn't work: the giraffe stays at zero width.
+
+I also did some experiments with CSS layout, and couldn't get it to solve it either. Because of how complicated CSS is, it's still entirely possible that a way to solve it does exist, and I just didn't find the correct magic word to make it happen. What I can say with certainty is that writing it in the obvious way doesn't work: the giraffe stays at zero width.
 
 [ css giraffe? it's just empty. ] 
 
