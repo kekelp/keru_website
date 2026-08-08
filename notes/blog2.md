@@ -5,7 +5,7 @@ In the past two years, I have been working on a new GUI library for Rust.
 This first post will be a general introduction, then something about the interface, what it means for retained mode etc, then layout, blah blah.
 -->
 
-The first question, of course, is why? Why do anything at all, really? This is not an easy question to answer in general, but for the specific case of making a GUI library, there are plenty of good reasons:
+The first question, of course, is why? Why do anything at all, really? This is not an easy question to answer in general, but I think 
 
 - It still looks like people want more libraries. There's a few well-known ones and a lot of less-known experimental ones, but people don't really seem to be fully satisfied with them.
 
