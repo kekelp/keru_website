@@ -1,13 +1,13 @@
-In the past two years, I have been working on a new GUI library for Rust. I'm quite happy with how it turned out, and it's
-been a great way to experiment with all sorts of ideas about GUI and library design. 
+In the past two years, I have been working on a new GUI library for Rust.
 
-In this blog post, I want to talk a bit about the library and share some of the ideas that went into it.
+<!-- In this blog, I want to share some of the ideas that went into it, some of the things I've learned, and give my perspective on the field of GUI programming in general.  
 
-<!-- This post is kind of targeted towards Rust UI people, people from other backgrounds might think that I'm spending too much time justifying things that "everyone already agrees on". -->
+This first post will be a general introduction, then something about the interface, what it means for retained mode etc, then layout, blah blah.
+-->
 
 The first question, of course, is why? Why do anything at all, really? This is not an easy question to answer in general, but for the specific case of making a GUI library, there are plenty of good reasons:
 
-- It looks like people want more libraries. "What GUI library should I use" is probably one of the most asked question about Rust, but at the same time, the space doesn't feel very crowded at all. There's a few well-known ones, but people don't really seem to be fully satisfied with them.
+- It still looks like people want more libraries. There's a few well-known ones and a lot of less-known experimental ones, but people don't really seem to be fully satisfied with them.
 
 - nowadays, there are crates that solve most of the more annoying problems, like reliable cross-platform windowing and rendering, as well as high quality text.
 
@@ -18,8 +18,8 @@ The first question, of course, is why? Why do anything at all, really? This is n
 The next question is, what's new or interesting about this library?
 Most of the ideas in Keru are meant to help in one of three directions:
 
-- Simplicity and understandability of the architecture and of the library as a whole.
-- Flexibility and ergonomics of the library interface.
+- Simplicity and understandability.
+- Flexibility and ergonomics.
 - Performance of the library internals and of the resulting program.
 
 Before getting into it, here's an example of how the code for a counter looks like in Keru: (`minimal.rs`)
@@ -70,13 +70,15 @@ The `update` function runs on every update and redeclares the whole desired stat
 
 Simplicity is probably the most important point. My impression is that the main reason why GUI programming isn't very popular is because the libraries just aren't very easy to get into and use. They tend to come with a lot of "concepts" and structures that the user is required to learn and internalize before starting at all.
 
-This is not a problem just for beginners: as the programs that users try to make become more and more complicated, it becomes less and less pleasant to dedicate so much of the "complexity budget" to dealing with the GUI library rather than the program itself, and it becomes harder and harder to fit the program's natural logic and state into the forms and structures dictated by the library.
+This is not a problem just for beginners: as the programs that users try to make become more and more complicated, it becomes less and less pleasant to dedicate so much of the "complexity budget" to dealing with the GUI library rather than the program itself, and it becomes harder and harder to fit the program's natural logic and state into the structures and concepts that the library forces on us.
 
 There's many things that end up contributing to this feeling of complexity and user unfriendlyness:
 
-- Proc macros that literally define a new language within the language.
-- Complex generic types. Often, these end up being another way of creating a new language within the language that can no longer be understood in terms of the primitives that programmers already know.
-- A proliferation of too many distinct types and concepts with complex connections with each other. This can end up having the same effect even if the individual types are simple.
+- Extra tools and workflows for packaging, compiling DSLs, etc.
+- Proc macros that define a new language within the language.
+
+- Overcomplicated generic types.
+- Too many distinct types and concepts with complex connections with each other. This can end up having the same effect even if the individual types are simple.
 - Callbacks and anything that takes control of the program's main loop away from the user. Unfortunately winit already does this, but it's still good to refrain from adding yet another layer of indirection.
 - Special rules about when the user is allowed to access their state, when to mutate it, etc.
 
@@ -97,7 +99,7 @@ Most people recognize the value of simplicity, but is there a downside? Are we s
 
 Nowadays it's fairly popular to spend an afternoon throwing together a half-baked library that claims to solve some problem, and then showing everyone how much simpler it is compared to the full-featured alternatives.
 
-I won't try to claim that Keru is a "full-featured GUI library", because that probably includes things like bundling an entire web browser or a webview. But I think that it has enough features to convince people that it should be possible to scale up all the way without sacrificing the original simplicity. "Simple things should be simple, complex things should be possible".
+I won't try to claim that Keru is a "full-featured GUI library", but I think that it has enough features to convince people that it should be possible to scale up all the way without sacrificing the original simplicity.
 
 Keru's more advanced features include components with encapsulated state, advanced layout and grids, drag and drop, canvas drawing, optional imperative tree manipulation, integration with custom wgpu rendering, etc.
 
