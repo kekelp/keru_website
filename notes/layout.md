@@ -1,21 +1,22 @@
+# Keru: A New GUI Layout Algorithm??
+
 This blog post is about the experimental layout system in Keru. It uses a fairly unorthodox layout algorithm based on explicit dependencies between nodes.
 
 When I first started writing Keru, I actually didn't have any strong opinions about layout, and I implemented a very simple system inspired by some blog posts describing SwiftUI's one (it was 2024, so you couldn't just ask AI to write it). Unsurprisingly, it had some limitations, and I returned to layout some time later.
 
-This time, I finally discovered that GUI layout is more of an art than a science: a layout library offers some layout primitives that the user can compose, but when it comes to solving them and producing real rectangle coordinates, it's sort of common for libraries to do a fairly half-hearted attempt, give out an inconsistent answer, and declare that particular layout unsupported.
+This time, I finally learned that GUI layout is more of an art than a science: a layout library offers some layout primitives that the user can compose, but when it comes to solving them and producing real rectangle coordinates, usually it makes no promises. It's sort of common to do a fairly half-hearted attempt, give out an inconsistent answer, and declare that particular layout unsupported.
 
-The enlightening example is this innocent-looking giraffe layout, taken from this blog post: https://mortoray.com/why_ui_layout_calculations_are_slow/
+The enlightening example is this innocent-looking giraffe layout, taken from [this blog post by Edaqa Mortoray](https://mortoray.com/why_ui_layout_calculations_are_slow/) and edited for aesthetic consistency:
 
-![Giraffe](mortoray-giraffe.webp)
+![Giraffe](giraffe_edited.png)
 
-The multi-line paragraph fits to the width of the single-line label. The giraffe fits the height of the whole right section, and its width is half of its height, to preserve the aspect ratio of the bitmap image.
+In this layout, the multi-line paragraph fits to the width of the single-line label. The giraffe fits the height of the whole right section, and its width is half of its height, to preserve the aspect ratio of the bitmap image. As it turns out, most algorithms can't solve this.
 
-The first thing I did was trying to implement the `clay` algorithm in Keru, and despite sabotaging myself with a lot of AI assistance, I think I understood its algorithm well enough to conclude that it couldn't possibly solve this case.
+The first thing I did was trying to implement the `clay` algorithm in Keru, and despite lobotomizing myself with a lot of AI assistance, I think I understood its algorithm well enough to conclude that it couldn't possibly solve this case.
 
-To be clear, I don't think this is necessarily a problem: especially in the case of `clay`, which is a library focused on performance and simplicity, there's nothing wrong with sticking to a simpler and faster algorithm if it works for the specific application. There's plenty of GUI programs that work great without any advanced layouts and don't run into any of these problems. 
-Maybe it could have a section on its site explaining which cases are supported and which aren't, but I don't blame them for not going through this effort.
+To be clear, I don't think this is necessarily a problem: especially in the case of `clay` there's nothing wrong with sticking to a simpler and faster algorithm if it works for a specific application. There's plenty of GUI programs that work great without any advanced layouts of this kind and don't run into any of these problems. 
 
-I also did some experiments with CSS layout, and concluded that it couldn't solve it either. This is a lot harder because of how incredibly complicated CSS is: it's still entirely possible that CSS can solve this problem just fine, and I just didn't know the correct magic word for it. What I can say with certainty is that writing it in the obvious way doesn't work:
+I also did some experiments with CSS layout, and concluded that it can't solve it either. This was a lot harder because of how complicated CSS is: it's still entirely possible that CSS has a way to solve it, and I just didn't find the correct magic word to make it happen. What I can say with certainty is that writing it in the obvious way doesn't work: the giraffe stays at zero width.
 
 [ css giraffe? it's just empty. ] 
 
@@ -23,7 +24,9 @@ My conclusion for now is that this is due to the fact that most layout algorithm
 
 To understand what was going on, I tried drawing the giraffe on paper and asking myself what would an ideal layout engine do to solve this layout properly.
 
-[ photo ]
+![Giraffe on paper](giraffe_paper.png)
+
+*In the original blog post, the layout also has a dog picture, which is reproduced here. However, it doesn't contribute to the layout at all.*
 
 It turns out that in this case there's a fairly straightforward dependency chain:
 
@@ -37,9 +40,9 @@ It turns out that in this case there's a fairly straightforward dependency chain
 
 ## The Algorithm
 
-It's not that hard for an algorithm to pick up this same chain of dependencies.
+It's not that hard to write an algorithm that works in this way.
 
-The goal is to build a graph of dependencies, then solve it. Every element in the graph is a `(NodeID, Axis)` pair, and each dependency is an edge in the graph: `{ dependent: (NodeID, Axis), depends_on: (NodeID, Axis) }`.
+The goal is to build a graph of dependencies, then solve it. In the simplest version of the algorithm, every element in the graph is a `(NodeID, Axis)` pair, and each dependency is an edge in the graph: `{ dependent: (NodeID, Axis), depends_on: (NodeID, Axis) }`.
 
 - For each of these elements, we keep a list of elements that depend on it, and a count of elements it depends on.
 
@@ -85,22 +88,22 @@ The real weakness of the graph algorithm as described above is that it can make 
 
 An algorithm that fills all of them with best-effort values won't have any good numbers for the two cycling nodes, but it might have a good guess for the container, based just on the plain node. The basic graph solver, on the other hand, will stop without solving the container, because it has dependencies that were never solved.
 
-It's not hard to extend the algorithm to fix this, though:
+It's not hard to extend the graph algorithm to fix this, though:
 
-- When we solve an element and decrease the dependency count of all its dependents, see if the element still has a positive count.
+- When solving nodes, keep track of which elements's dependency counts get decreased.
+- After the main solver queue is emptied, see if there are any elements whose dependency count decreased, but never reached zero.
+    These are elements that got useful input flowing into them, but also depend on unsolvable cyclic elements, like the `Fit` container in the example above.
+- Pick the first of these elements, and collapse its unsolved dependencies to zero or to a fallback size. Then, push it into the main solver queue.
+- Loop back to solving the main queue. This will solve that element and any elements that depended on it, using the regular system.
 
-- If yes, add it to a deferred solver queue.
-
-- After the main solver queue is done, go through the deferred solver queue. 
-
-    - If there are no cycles, all those elements will already be solved. If there is an unsolved element, it means that it depends on an unsolvable node.
-
-    - Collapse its unsolvable dependencies to zero or to a fallback size. Then push the element into the main solver queue.
-
-    - Loop back to solving the main queue. This will solve that element, and any elements that depended on it, using the regular algorithm.
+In this way, we can make sure that cycles don't mess up more of the layout than they have to.
 
 
-Finally, we can reduce the occurrence of cycles by just forcing a hard-coded resolution to some of the more common cycle-like patterns. As an obvious example, we can determine a node that has `AspectRatio` on both axes to immediately resolve to `(100, 100)`, before even entering into the graph. We can also log a warning. A more ambitious one is deciding that when a `Fit` node has a single `Fill` child, the child "punches through" the parent and fills the whole space of its *grand*parent. This is consistent with the idea of `FitContent` acting as a neutral "margin" around its content, but I'll need to experiment with this for a while to see if it leads to too many surprising results.
+The last observation is that most real occurrences of cycles come from fairly simple localized cycles, rather than long complicated chains.
+
+So, we can reduce the occurrence of cycles by just forcing a hard-coded resolution to some of the more common cycle-like patterns. As an obvious example, we can determine a node that has `AspectRatio` on both axes to immediately resolve to `(100, 100)`, before even entering into the graph. We can also log a warning.
+
+A more ambitious one is deciding that when a `Fit` node has only `Fill` children with no minimum sizes, the children can "punch through" the parent and fills the whole space of its *grand*parent. This is consistent with the idea of `FitContent` acting as a neutral "margin" around its content, but I'll need to experiment with this for a while to see if it leads to too many surprising results.
 
 
 ## Different kinds of sizes
@@ -109,7 +112,7 @@ The next step in sophistication for the layout algorithm is to support maximum a
 
 When min and max sizes combine with some of the most complex cases of stack containers, this actually ends up complicating the picture quite a bit. Eventually, we also have to add some other kinds of more abstract `SizeTypes`, representing some partial calculations that the stacks have to do.
 
-However, it turns out that the graph approach can deal with all of these complications, as long as we note all the dependencies correctly. For this reason, I won't go into the details. If you are skeptical about this system's ability to solve any specific layout problem, let me know. You can also try it yourself and let me know how it goes: Keru is a pure Rust library and uses `winit` and `wgpu`, so trying it out should be relatively easy on most systems.  
+However, it turns out that the graph approach can deal with all of these complications, as long as we write down all the dependencies correctly. For this reason, I won't go into the details. If you are skeptical about this system's ability to solve any specific layout problem, let me know, and I will try it. You can also try it yourself and let me know how it goes: Keru is a pure Rust library and uses `winit` and `wgpu`, so trying it out should be relatively easy on most systems.  
 
 ## Data layout matters?
 
@@ -124,7 +127,7 @@ In the dark ages of programming, there was a common idea that the way to build a
 
 This means that a node is literally only accessible from its parent. In this situation, it's not surprising that most algorithms end up looking like a sequence of tree-order traversals!
 
-In the style of programming that I use, on the other hand, all nodes are stored in a top-level container like a slotmap, slab, hashmap, or even a plain Vec in simpler cases. Then, parent-child relationships are encoded by non-owning `NodeID`s, which are indices or keys into the container.
+In the style of programming that I use, on the other hand, all nodes are stored in a top-level container like a slotmap, slab, hashmap, or even a plain Vec in simpler cases. Then, nodes can refer to each other using non-owning `NodeID`s, which are indices or keys into the container.
 
 This is what allows us to model dependencies as simple value structs that contain 'NodeID`s, and to access and solve the nodes in arbitrary order when going through the dependencies.
 
@@ -137,17 +140,15 @@ There are many other factors in this kind of decision, most importantly the impa
 
 Layout is often considered to be a fairly slow part of a GUI library's pipeline, so it's natural to wonder about the performance of a new algorithm. 
 
-Unfortunately I don't have a lot of useful information here, as I didn't run any serious benchmarks. 
+From an algorithmic complexity point of view, Keru's algorithm doesn't have any major quadratic or exponential scaling on the global number of nodes, and it still boils down to the same per-node calculations, so it's reasonable to expect it to work "fine". Other than that, unfortunately I don't have a lot of useful information, as I didn't run any serious benchmarks.
 
-From an algorithmic complexity point of view, Keru's algorithm doesn't have any major quadratic or exponential scaling on the global number of nodes, and it still boils down to the same per-node calculations, so it's reasonable to expect it to work "fine".
+However, I was still curious, so I ran some unserious ones, and compared the results with the ones from [this blog post from the PanGui project](https://www.pangui.io/blog/05-layout-rework-and-benchmarks/).
 
-However, I was still curious, so I ran some unserious ones, and compared the results with the ones from this blog post from the PanGui project: https://www.pangui.io/blog/05-layout-rework-and-benchmarks/
-
-Unfortunately, Keru's current implementation of the algorithm is not at all optimized. I usually try to use the heap responsibly, and that's often enough to get pretty good performance without much effort. In this case, I didn't even follow my own rule, and made each node hold a heap-allocated `Vec` with a list of the nodes that depend on it.
-In addition, the layout algorithm runs on the full GUI nodes, which are huge structs containing a lot of information about the node's display and behavior. Of course, this is not very cache friendly.
+I should say immediately that Keru's current implementation of the algorithm is not optimized at all. I usually try to use the heap responsibly, and that's often enough to get pretty good performance without much effort. In this case, I broke even that simple rule, and made each node hold a heap-allocated `Vec` with a list of the nodes that depend on it.
+In addition, the layout algorithm runs on the full GUI nodes, which are huge structs containing a lot of information about the node's display, behavior, and other things completely unrelated to layout. Of course, this is not very cache friendly.
 These two factors alone are enough to conclude that the current implementation has no hope of utilizing the CPU efficiently.
 
-Another thing to remember, of course, is that the Keru numbers were measured on a completely different CPU from the other ones.
+Another important thing to remember, of course, is that the Keru numbers were measured on a completely different CPU from the other ones. The Keru ones were ran on a AMD Ryzen 7 5800H running on a laptop from 2021, which is probably a fair bit slower.
 
 Despite all the caveats and the handwaving, it's still reassuring to see Keru's numbers being fairly similar to Yoga and Taffy:
 
@@ -178,7 +179,14 @@ Despite all the caveats and the handwaving, it's still reassuring to see Keru's 
 
 If you clicked through to the blog post with the benchmarks, you might have noticed that the numbers for PanGui and for Clay are a full order of magnitude better than any of these! However, Clay uses a significantly less expressive algorithm, and PanGui is currently closed source, so there's not a lot to learn from the comparison.
 
-Still, while being on par with Taffy and Yoga is "fine", it's true that a new algorithm unencumbered by strict compliance with the CSS model should probably be aiming a bit higher. In the future, I'll try to see what an optimized version of the Keru algorithm can do.
+Still, while being on par with Taffy and Yoga is "okay", it's true that a new algorithm unencumbered by strict compliance with the CSS spec and written from scratch in the age of data-oriented programming should probably be aiming a bit higher. In the future, I'll try to see what an optimized version of the Keru algorithm can do.
 
+
+
+## Call to action
+
+If you are interested, check out [Keru's github page](https://github.com/kekelp/keru/).
+
+The next post on this blog will be a similar retrospective about Keru's user-facing API, which is the most unique feature.
 
 
