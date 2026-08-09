@@ -6,8 +6,6 @@ An important thing to remember is that while UI can be one of the most important
 
 For this reason, besides being easy to use and learn, it's very important that a GUI library imposes as few restrictions as possible on the rest of the program's code. It shouldn't force the programmer to structure the program's data in certain way, impose rules on when it can be accessed or mutated, or complicate the program's control flow with too many callbacks and indirections.
 
-Rather than continuing with more theoretical considerations, it's probably more useful to get into the syntax. Then, the later sections will go in some detail about the advantages and tradeoffs of this structure, the way in which it is implemented. A future post will talk a bit about the implications that the syntax has on the architecture.
-
 This is Keru's `minimal` example:
 
 ```rust
