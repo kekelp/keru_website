@@ -55,7 +55,9 @@ The `Ui` struct retains the whole state of the GUI across frames, so this is not
 
 When the `update_ui` function runs, it redeclares the desired state of the whole GUI. While this happens, the `Ui` updates the retained state to match the declared one, and schedules relayouts or repaints as needed.
 
-Generally, `update_ui` doesn't run on "every frame". It only runs when an input such as a mouse click lands on a node that is actively listening for it. However, it's true that there's no fine-grained redeclarations out of the box: the entire GUI is redeclared at once. There are some experimental ways to skip some of the redeclarations, but my impression is that they are almost never worth the complexity. As mentioned, redeclaring the whole GUI doesn't mean rebuilding the tree from scratch, necessarily doing a full relayout or repaint, and it's usually very cheap. A future blog post will go into more detail about this and provide some numbers. 
+Generally, `update_ui` doesn't run on "every frame". It only runs when an input such as a mouse click lands on a node that is actively listening for it. However, it's true that there's no fine-grained redeclarations out of the box: the entire GUI is redeclared at once. There are some experimental ways to skip some of the redeclarations, but my impression is that they are almost never worth the complexity.
+
+As mentioned, redeclaring the whole GUI doesn't mean rebuilding the tree from scratch, necessarily doing a full relayout or repaint, and it's usually very cheap. A future blog post will go into more detail about this and provide some numbers. 
 
 Back to the syntax:
 
@@ -65,7 +67,7 @@ The first line in `update_ui` is a tiny proc macro that defines an unique compil
 
     #[node_key] const INCREASE: NodeKey;
 
-Internally, the `#[node_key];` macro just rolls a random `u64` and uses it to fill in the value of the `const`. 
+Internally, the `#[node_key]` macro just rolls a random `u64` and uses it to fill in the value of the `const`. 
 
 Rust proc macros get a lot of hate, but they work great for this purpose. In some other libraries, the user has to create IDs manually by manually providing unique strings.
 
@@ -78,11 +80,14 @@ Note that this doesn't mean that ALL nodes need an explicit key: Keru can also g
         .text("Increase")
         .key(INCREASE);
 
-`increase_button` is a `Node`, a struct that describes a node in the GUI. In Keru, "everything is a node", and the `Node`'s fields can be configured to turn it into a button, a text element, and image, a stack container, a grid container, a shape, etc.
+`increase_button` is a `Node`, a struct that describes a node in the GUI. In Keru, "everything is a node", and the `Node`'s fields can be configured to turn it into a button, a text element, an image, a stack container, a grid container, a shape, etc.
+
+In this case, we start with `BUTTON`, which is a preset `Node` constant, and use builder methods to configure it.
+
 We also stick the `INCREASE` key in, to associate the node with the key.
 
 The fact that "everything is a node" has some minor disadvantages, but it helps a lot in making the library easier to learn and understand. Except for the largely optional `Component` trait, Keru's interface is basically all contained in the above example: 
-all GUIs are built by `add()`ing and `nest()`ing different kinds of `Nodes`s.
+all GUIs are built by `add()`ing and `nest()`ing different kinds of `Node`s.
 
 ## The Tree
 
@@ -92,11 +97,11 @@ all GUIs are built by `add()`ing and `nest()`ing different kinds of `Nodes`s.
         ui.add(LABEL.text(&state.count.to_string()));
     });
 
-The `Ui` is the struct that holds the full retained state of the whole GUI. When `update_ui` runs, we call `add()` and `nest()` to redeclare what nodes should be part of the tree, and the parent-child relationships among them.
+The `Ui` is the struct that holds the full retained state of the whole GUI. When `update_ui` runs, we call `add()` and `nest()` to redeclare what nodes should be part of the tree, and the parent-child relationships between them.
 
-Since `increase_button` is a plain value struct, we choose to keep it separate it from this part of the code, so that the tree structure remains understandable at a glance. Of course, nothing is stopping us from inlining the `V_STACK` and the `LABEL`.
+Since `increase_button` is a plain value struct, we choose to keep it separate from this part of the code, so that the tree structure remains understandable at a glance. Of course, nothing is stopping us from inlining the `V_STACK` and the `LABEL`.
 
-The `nest` closure doesn't have a `|ui|` parameter, and uses a thread-local value to keep track of the current parent. Many Egui users are probably familiar to the kind of borrow errors that arise when the user needs to continuously reborrow the `ui`. A plain `||` closure avoids these problems entirely.
+The `nest` closure doesn't have a `|ui|` parameter, and uses a thread-local value to keep track of the current parent. Many Egui users are probably familiar with the kind of borrow errors that arise when the user needs to continuously reborrow the `ui`. A plain `||` closure avoids these problems entirely.
 
 That said, using a closure still comes with some downsides. For example, this doesn't work:  
 
@@ -108,13 +113,13 @@ That said, using a closure still comes with some downsides. For example, this do
 
 For all the compiler knows,`nest()` might decide to return without doing anything with our closure, so it can't tell if the code for our nested elements is going to be executed at all. So we'll get an error about `result` being potentially uninitialized.
 
-For more complicated reasons, it also gets in the way when trying to implement the familiar immediate-mode `ui.add(BUTTON).is_clicked()` 
-We can't have nice syntax for both `nest` and `is_clicked()` at the same time. In Keru, we have to awkwardly pass back the `ui` reference back into it: `if ui.add(BUTTON).is_clicked(ui) { ... }`
+For more complicated reasons, it also gets in the way when trying to implement the familiar immediate-mode `ui.add(BUTTON).is_clicked()`.
+We can't have nice syntax for both `nest` and `is_clicked()` at the same time. In Keru, we have to awkwardly pass the `ui` reference back into it: `if ui.add(BUTTON).is_clicked(ui) { ... }`
 
 All we're trying to do with the closure is to call a `push_parent()` function before the inner code, and `pop_parent()` after.
 It would be much better to have a dedicated language construct to do this sort of thing, like Python's `with` or C#'s `using`.
 
-As is often the case in life, we can derive confort by looking at the misfortunes of others. Few languages provide good tools for this, so library authors use all sorts of creative workarounds. Some Zig libraries ask the user to open a block and call `defer node.close()` manually after adding a node. C libraries like `clay` use complicated macro tricks. The C GUI library used for the RadDbg debugger uses an especially funny solution: a macro that wraps the code in a `for` statement, sticking the `push_parent` in the loop initialization and the `pop_parent()` in the increment clause. Calling `break` inside the body breaks it completely.
+As is often the case in life, we can derive comfort by looking at the misfortunes of others. Few languages provide good tools for this, so library authors use all sorts of creative workarounds. Some Zig libraries ask the user to open a block and call `defer node.close()` manually after adding a node. C libraries like `clay` use complicated macro tricks. The C GUI library used for the RadDbg debugger uses an especially funny solution: a macro that wraps the code in a `for` statement, sticking the `push_parent` in the loop initialization and the `pop_parent()` in the increment clause. Calling `break` inside the body breaks it completely.
 
 Even in the languages that do have a dedicated construct, like Python and C#, it's interesting to note that it was added to help with resource deallocation, not for something as lowbrow as programming GUIs.
 
@@ -131,13 +136,13 @@ Events run in immediate-mode style, without callbacks. We just ask the `Ui` if a
 
 In callback-based systems, there's usually no safe way for the program to truly own its data. The data either is owned by the GUI library directly, or it has to be wrapped into `Arc` based containers that allow callbacks to hold references to it. As anticipated in the beginning of the post, I think this is an unacceptable compromise. Even if that wasn't the case, I'd probably still do my best to avoid callbacks anyway, just for the sake of not complicating the control flow.
 
-However, Keru's solution is not as inflexible as in most immediate-mode libraries, thanks to the power of `NodeKey's and to the fact that the `Ui` is actually fully retained.
+However, Keru's solution is not as inflexible as in most immediate-mode libraries, thanks to the power of `NodeKey`s and to the fact that the `Ui` is actually fully retained.
 
-This code can be ran from anywhere else in the program. We can move it into another function entirely to separate the effects from the presentation, or move it just a couple lines to avoid mucking up the nested `add()` calls that define the layout. As always, nothing is stopping us from not separating it at all and writing it right below the `add()`.
+This code can be run from anywhere else in the program. We can move it into another function entirely to separate the effects from the presentation, or move it just a couple lines to avoid mucking up the nested `add()` calls that define the layout. As always, nothing is stopping us from not separating it at all and writing it right below the `add()`.
 
 Dedicated immediate-mode fans can even fall back to the familiar `if ui.add(BUTTON).is_clicked(ui)` form, as mentioned above, if they can stomach having to pass in the `ui`.
 
-While this style is perfectly compatible with a `Ui` that retains as much state as it wants, it's true that it generally means that the redeclaration code has to be rerun on every frame, so that the code that reacts to events can rerun as well. But this is still not the same as "immediate-mode" in the negative sense in which many people use the word. Nodes can annotate the types of events that they care about, so if a click lands on a element without the `CLICK` sense, the Ui knows that nothing has to be reran at all.
+While this style is perfectly compatible with a `Ui` that retains as much state as it wants, it's true that it generally means that the redeclaration code has to be rerun on every frame, so that the code that reacts to events can rerun as well. But this is still not the same as "immediate-mode" in the negative sense in which many people use the word. Nodes can annotate the types of events that they care about, so if a click lands on an element without the `CLICK` sense, the Ui knows that nothing has to be rerun at all.
 
 
 
