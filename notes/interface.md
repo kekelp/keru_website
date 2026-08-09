@@ -1,12 +1,12 @@
 This is a blog post about Keru's main library interface.
 
-It might seem shallow to focus on the syntax, but in practice, the shape of the library interface is a big part of what determines whether a library is easy to use and to learn, whether it's smooth or painful to integrate it into a bigger project, and so on.
+It might seem shallow to focus on the syntax, but in practice, the shape of the library interface is a big part of what determines whether a library is easy to use and to learn, whether it's flexible enough to be used in different kinds of projects, whether it's smooth or painful to integrate it into a bigger program, and so on.
 
-An important thing to remember is that while UI is one of the most important parts of a program from the end user's point of view, the writer of the program usually has plenty of other things to worry about. If a GUI library is trying to help with the hard problems, and not just with the easy ones, it should be a relatively unobtrusive layer that can be easily laid on top of the other part of the program, the one that does the actual computation, simulation, networking, or whatever it's doing and wants to make accessible through the GUI.
+An important thing to remember is that while UI can be one of the most important parts of a program from the end user's point of view, the writer of the program usually has plenty of other things to worry about. If a GUI library is trying to help with the hard problems, and not just with the easy ones, it should be a relatively unobtrusive layer that can be easily laid on top of the other part of the program, the one that does the actual computation, simulation, networking, or whatever it's doing and wants to make accessible through the GUI.
 
-For this reason, besides being easy to use and learn, it's very important that a GUI library tries as hard as possible to avoid leaking its complexity in the rest of the program, and imposes as few restrictions as possible on the rest of the code. It shouldn't force the programmer to structure the program's data in certain way, impose rules on when it can be accessed or mutated, or complicate the program's control flow with too many callbacks and indirections.
+For this reason, besides being easy to use and learn, it's very important that a GUI library imposes as few restrictions as possible on the rest of the program's code. It shouldn't force the programmer to structure the program's data in certain way, impose rules on when it can be accessed or mutated, or complicate the program's control flow with too many callbacks and indirections.
 
-But rather than more theoretical considerations, it's probably more useful to get into the syntax. Then, the later sections will go in some detail about the advantages and tradeoffs of this structure, the way in which it is implemented. A future post will talk a bit about the implications that the syntax has on the architecture.
+Rather than continuing with more theoretical considerations, it's probably more useful to get into the syntax. Then, the later sections will go in some detail about the advantages and tradeoffs of this structure, the way in which it is implemented. A future post will talk a bit about the implications that the syntax has on the architecture.
 
 This is Keru's `minimal` example:
 
@@ -49,8 +49,15 @@ fn main() {
 }
 ```
 
-The `Ui` struct retains the whole state of the GUI, so this is not an "immediate-mode" library (at least not in that sense.)
-The `update` function runs on every update and redeclares the whole desired state of the GUI. While this happens, the `Ui` updates the retained state to match the declared one, and schedules relayouts or repaints as needed.
+Before getting into the details, I will give a very high level summary of the architecture.
+
+The `Ui` struct retains the whole state of the GUI across frames, so this is not an "immediate-mode" library.
+
+When the `update_ui` function runs, it redeclares the desired state of the whole GUI. While this happens, the `Ui` updates the retained state to match the declared one, and schedules relayouts or repaints as needed.
+
+Generally, `update_ui` doesn't run on "every frame". It only runs when an input such as a mouse click lands on a node that is actively listening for it. However, it's true that there's no fine-grained redeclarations out of the box: the entire GUI is redeclared at once. There are some experimental ways to skip some of the redeclarations, but my impression is that they are almost never worth the complexity. As mentioned, redeclaring the whole GUI doesn't mean rebuilding the tree from scratch, necessarily doing a full relayout or repaint, and it's usually very cheap. A future blog post will go into more detail about this and provide some numbers. 
+
+Back to the syntax:
 
 ## Node Keys
 
@@ -58,14 +65,11 @@ The first line in `update_ui` is a tiny proc macro that defines an unique compil
 
     #[node_key] const INCREASE: NodeKey;
 
-Internally, the `#[node_key];` macro just rolls a random `u64` and uses it to fill in the value of the `const`.
+Internally, the `#[node_key];` macro just rolls a random `u64` and uses it to fill in the value of the `const`. 
 
-Rust proc macros get a lot of hate, but they work great here. In many other libraries, the user has to create IDs manually by providing strings, with no compile-time check for their uniqueness. 
+Rust proc macros get a lot of hate, but they work great for this purpose. In some other libraries, the user has to create IDs manually by manually providing unique strings.
 
-Note that this doesn't mean that ALL nodes need an explicit `NodeKey`: Keru can also generate implicit keys from source code location, position in the runtime GUI tree, and more. However, since it's so convenient to create explicit ones, it leans on them quite a bit as a general-purpose way to refer to GUI nodes from anywhere in the code.
-
-There's also a system for reusable components. When using it, `NodeKey`s only have to be unique within the component and not globally in the whole program.
-
+Note that this doesn't mean that ALL nodes need an explicit key: Keru can also generate implicit keys from source code location, position in the runtime GUI tree, and more. But since it's so convenient to create explicit ones, it leans on them quite a bit as a general-purpose way to refer to GUI nodes from anywhere in the code.
 
 ## Nodes
 
@@ -74,8 +78,8 @@ There's also a system for reusable components. When using it, `NodeKey`s only ha
         .text("Increase")
         .key(INCREASE);
 
-`increase_button` is a `Node`, a struct that describes a node in the GUI. In Keru, "everything is a node", and by setting the `Node''s fields we can turn it into a button, a text element, and image, a stack container, a grid container, or any of the supported primitives.
-We also stick the `INCREASE` key in to associate it with the node.
+`increase_button` is a `Node`, a struct that describes a node in the GUI. In Keru, "everything is a node", and the `Node`'s fields can be configured to turn it into a button, a text element, and image, a stack container, a grid container, a shape, etc.
+We also stick the `INCREASE` key in, to associate the node with the key.
 
 The fact that "everything is a node" has some minor disadvantages, but it helps a lot in making the library easier to learn and understand. Except for the largely optional `Component` trait, Keru's interface is basically all contained in the above example: 
 all GUIs are built by `add()`ing and `nest()`ing different kinds of `Nodes`s.
@@ -102,19 +106,19 @@ That said, using a closure still comes with some downsides. For example, this do
     });
     return result;
 
-The compiler has no idea about what happens inside `nest()`, so it can't reason about this code very well. For all it knows,`nest()` might as well return immediately without calling the closure at all. So we'll get an error about `result` being potentially uninitialized.
+For all the compiler knows,`nest()` might decide to return without doing anything with our closure, so it can't tell if the code for our nested elements is going to be executed at all. So we'll get an error about `result` being potentially uninitialized.
 
 For more complicated reasons, it also gets in the way when trying to implement the familiar immediate-mode `ui.add(BUTTON).is_clicked()` 
 We can't have nice syntax for both `nest` and `is_clicked()` at the same time. In Keru, we have to awkwardly pass back the `ui` reference back into it: `if ui.add(BUTTON).is_clicked(ui) { ... }`
 
-All we're trying to do with the closure is to call `push_parent()` before the inner code, and `pop_parent()` after.
+All we're trying to do with the closure is to call a `push_parent()` function before the inner code, and `pop_parent()` after.
 It would be much better to have a dedicated language construct to do this sort of thing, like Python's `with` or C#'s `using`.
 
-As is often the case in life, we can derive confort by looking at the misfortunes of others. Few languages provide good tools for this, so library authors use all sorts of creative workarounds. Some Zig libraries ask the user to open a block and call `defer node.close()` manually. C libraries like `clay` use complicated macro tricks. The C GUI library used for the RadDbg debugger uses an especially funny solution: a macro that wraps the code in a `for` statement, sticking the `push_parent` in the loop initialization and the `pop_parent()` in the increment clause. Calling `break` inside the body breaks it completely.
+As is often the case in life, we can derive confort by looking at the misfortunes of others. Few languages provide good tools for this, so library authors use all sorts of creative workarounds. Some Zig libraries ask the user to open a block and call `defer node.close()` manually after adding a node. C libraries like `clay` use complicated macro tricks. The C GUI library used for the RadDbg debugger uses an especially funny solution: a macro that wraps the code in a `for` statement, sticking the `push_parent` in the loop initialization and the `pop_parent()` in the increment clause. Calling `break` inside the body breaks it completely.
 
-Even in the languages that do have a dedicated construct, like Python and C#, it's interesting to note that it was added to help with resource deallocation, and certainly not for something as lowbrow as programming GUIs.
+Even in the languages that do have a dedicated construct, like Python and C#, it's interesting to note that it was added to help with resource deallocation, not for something as lowbrow as programming GUIs.
 
-All in all, the `||` closure is probably not a bad solution if we look at the bigger picture, and there's some value in doing this with a "regular" language construct rather than with a more ad-hoc one or a macro.
+All in all, the `||` closure doesn't look like a bad solution if we look at the bigger picture, and there's some value in using a "regular" language construct like a closure rather than a more ad-hoc one or a macro.
 
 ## Events
 
@@ -125,7 +129,7 @@ All in all, the `||` closure is probably not a bad solution if we look at the bi
 
 Events run in immediate-mode style, without callbacks. We just ask the `Ui` if a node was clicked in the last frame.
 
-In callback-based systems, there's usually no safe way for the program to truly own its data. The data either is owned by the GUI library directly, or it has to be wrapped into `Arc` based containers, which allow callbacks to hold references to it. As anticipated in the beginning of the post, I think this is an unacceptable compromise. And even if that wasn't the case, I'd probably still do my best to avoid callbacks anyway, just for the sake of not complicating the control flow.
+In callback-based systems, there's usually no safe way for the program to truly own its data. The data either is owned by the GUI library directly, or it has to be wrapped into `Arc` based containers that allow callbacks to hold references to it. As anticipated in the beginning of the post, I think this is an unacceptable compromise. Even if that wasn't the case, I'd probably still do my best to avoid callbacks anyway, just for the sake of not complicating the control flow.
 
 However, Keru's solution is not as inflexible as in most immediate-mode libraries, thanks to the power of `NodeKey's and to the fact that the `Ui` is actually fully retained.
 
