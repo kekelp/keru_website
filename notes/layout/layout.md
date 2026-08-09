@@ -188,10 +188,10 @@ Still, while being on par with Taffy and Yoga is "okay", it's true that a new al
 
 
 
-## Call to action
+## Thanks For Reading
 
 If you are interested, check out [Keru's github page](https://github.com/kekelp/keru/).
 
-The next post on this blog will be a similar retrospective about Keru's user-facing API, which is the most unique feature.
+The next post on this blog will be a similar analysis about Keru's user-facing API, which is its most unique feature.
 
 
