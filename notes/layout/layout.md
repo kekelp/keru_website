@@ -2,7 +2,7 @@
 
 This blog post is about the experimental layout system in Keru. It uses a fairly unorthodox layout algorithm based on explicit dependencies between nodes.
 
-When I first started writing Keru, I actually didn't have any strong opinions about layout, and I implemented a very simple system inspired by some blog posts describing SwiftUI's one (it was 2024, so you couldn't just ask AI to write it). Unsurprisingly, it had some limitations, and I returned to layout some time later.
+When I first started writing Keru, I actually didn't have any strong opinions about layout, and I implemented a very simple system inspired by some blog posts describing the one in SwiftUI (it was 2024, so you couldn't just ask AI to write it). Unsurprisingly, it had some limitations, and I returned to layout some time later.
 
 This time, I finally learned that GUI layout is more of an art than a science: a layout library offers some layout primitives that the user can compose, but when it comes to solving them and producing real rectangle coordinates, usually it makes no promises. It's sort of common to do a fairly half-hearted attempt, give out an inconsistent answer, and declare that particular layout unsupported.
 
@@ -12,14 +12,18 @@ The enlightening example is this innocent-looking giraffe layout, taken from [th
 
 In this layout, the multi-line paragraph fits to the width of the single-line label. The giraffe fits the height of the whole right section, and its width is half of its height, to preserve the aspect ratio of the bitmap image. As it turns out, most algorithms can't solve this.
 
-The first thing I did was trying to implement the `clay` algorithm in Keru, and despite lobotomizing myself with a lot of AI assistance, I think I understood its algorithm well enough to conclude that it couldn't possibly solve this case.
+The first thing I did was trying to implement the `clay` algorithm in Keru, and despite lobotomizing myself with a lot of AI assistance, I think I understood its algorithm well enough to conclude that it can't possibly solve this case.
+
+I also did some experiments with CSS layout, and couldn't get it to solve it either. Because of how complicated CSS is, it's still entirely possible that a way to solve exists, and I just didn't find the correct magic word to make it happen. What I can say with certainty is that writing it in [the obvious way](LINK_TO_GIRAFFE.aHTML) doesn't work: the giraffe stays at zero width.
+
+![Giraffe](giraffe_css.png)
+ 
 
 To be clear, I don't think this is necessarily a problem: especially in the case of `clay` there's nothing wrong with sticking to a simpler and faster algorithm if it works for the intended application. There's plenty of GUI programs that work great without any advanced layouts of this kind and don't run into any of these problems.
 
+CSS a bit harder to defend, because it's a system that's forced on a lot of people. Moreover, despite cutting this corner, it's not very fast either.
 
-I also did some experiments with CSS layout, and couldn't get it to solve it either. Because of how complicated CSS is, it's still entirely possible that a way to solve it does exist, and I just didn't find the correct magic word to make it happen. What I can say with certainty is that writing it in the obvious way doesn't work: the giraffe stays at zero width.
-
-[ css giraffe? it's just empty. ] 
+My interest doesn't come from a concrete need to use advanced layouts like this in an application; I'm mostly driven by curiosity. However, it's not uncommon at all to hear people complaining about the unfriendlyness of layout systems. If it was possible to find a more general solution that worked in a predictable way without many surprises, it might go a long way towards making the system feel more understandable and reliable.
 
 My conclusion for now is that this is due to the fact that most layout algorithms are implemented through a series of top-down or bottom-up tree traversals, and the dependencies in the giraffe example just don't line up with them. As the original giraffe blog post notes, solving an arbitrary dependency graph by doing multiple passes until everything is solved leads to exponential complexity, so the algorithms cut some corners. Sometimes doing a lot of memoization can help, but sometimes they just give up.
 
@@ -27,9 +31,9 @@ To understand what was going on, I tried drawing the giraffe on paper and asking
 
 ![Giraffe on paper](giraffe_paper.png)
 
-*In the original blog post, the layout also has a dog picture, which is reproduced here. However, it doesn't contribute to the layout at all.*
+*In the original blog post, the layout also includes a dog picture, which is reproduced here. However, it doesn't contribute to the layout at all.*
 
-It turns out that in this case there's a fairly straightforward dependency chain:
+It turns out that in this case there's a pretty straightforward dependency chain:
 
 - The single-line text determines the width of the v-stack on the right.
 - The wrapping text fills the width of the v-stack, and determines its height by wrapping.
