@@ -13,19 +13,19 @@ The enlightening example is this innocent-looking giraffe layout, taken from [th
 
 <figure>
     <img src="giraffe_original.png" alt="Edaqa Mortoray's giraffe layout.">
-    <figcaption>The dog picture doesn't really partecipate in the layout in any interesting way.</figcaption>
+    <figcaption>You can ignore the dog, as it doesn't partecipate in the layout in any interesting way.</figcaption>
 </figure>
 
 In this layout, the multi-line paragraph fits to the width of the single-line label. The giraffe fits the height of the whole right section, and its width is half of its height, to preserve the aspect ratio of the bitmap image. As it turns out, most algorithms can't solve this.
 
 The first thing I did was trying to implement the `clay` algorithm in Keru, and despite sabotaging myself with a lot of AI assistance, I think I understood its algorithm well enough to conclude that it can't possibly solve this case.
 
-I also did some experiments with CSS layout, and couldn't get it to solve it either. Because of how complicated CSS is, it's still entirely possible that a way to solve exists, and I just didn't find the correct magic word to make it happen. What I can say with certainty is that writing it in <a href="/css-giraffe/" target="_blank" rel="noopener">the obvious way</a> doesn't work: the giraffe stays at zero width.
+I also did some experiments with CSS layout, and couldn't get it to solve it either. Because of how complicated CSS is, it's still entirely possible that a way to solve it exists, and I just didn't find the magic word that would make it happen. What I can say with certainty is that writing it in <a href="/css-giraffe/" target="_blank" rel="noopener">the obvious way</a> doesn't work: the giraffe stays at zero width.
  
 
 To be clear, I don't think this is necessarily a huge problem: especially in the case of `clay` there's nothing wrong with sticking to a simpler and faster algorithm if it works for the intended application. There's plenty of GUI programs that work great without any advanced layouts of this kind and don't run into any of these issues.
 
-However, it's not uncommon to hear people complaining about the unfriendlyness of layout systems. If it was possible to find a more general solution that worked in a more predictable way without surprises, it might go a long way towards making the system feel more reliable and user-friendly.
+However, it's not uncommon to hear people complaining about the unfriendlyness of layout systems. If it was possible to find a more general solution that worked in a more consistent and predictable way without surprises, it might go a long way towards making the system feel more reliable and user-friendly.
 
 My conclusion for now is that these limitations is due to the fact that most layout algorithms are implemented through a series of top-down or bottom-up tree traversals, and the dependencies in the giraffe example just don't line up with them. As the original giraffe blog post notes, solving an arbitrary dependency graph by doing multiple passes until everything is solved leads to exponential complexity, so the algorithms cut some corners. Sometimes doing a lot of memoization can help, but sometimes they just give up.
 
@@ -75,11 +75,13 @@ The goal is to build a graph of dependencies, then solve it. In the simplest ver
 - Continue until the solver queue is empty.
 
 
-When you put it like this, it doesn't even sound that exciting, but it works. here is the solved giraffe:
+When you put it like this, it doesn't even sound that exciting, but it works. The single-line text is the starting point, and the solver steps through the chain exactly as we described above. Here is the solved giraffe:
 
-![Giraffe solved in Keru](giraffe_solved.png)
 
-The single-line text is the starting point pushed to the queue, and the solver steps through the chain exactly as we described in words above.
+<figure>
+    <img src="giraffe_solved.png" alt="Giraffe solved in Keru.">
+    <figcaption>The giraffe is replaced by a gradient, as I don't have an aesthetically consistent giraffe picture. But you can see, everything fits, and the giraffe has the correct aspect ratio.</figcaption>
+</figure>
 
 
 ## Cycles
