@@ -1,5 +1,5 @@
 +++
-title = "GUI library Interface"
+title = "Looking for the Perfect GUI Library Interface"
 date = 2026-08-21
 +++
 
@@ -48,7 +48,8 @@ fn update_ui(state: &mut State, ui: &mut Ui) {
 fn main() {
     let state = State { count: 0 };
     // Use a wrapper that sets up a winit/wgpu loop and runs our `update_ui` on every update.
-    // This is just for examples! Keru is meant to be used as part of a user-controlled winit/wgpu loop.
+    // This is just for examples!
+    // Keru is meant to be used as part of a user-controlled winit/wgpu loop.
     // Setting up a winit/wgpu loop is less than 100 lines of boilerplate.
     example_window_loop::run_example_loop(state, update_ui);
 }

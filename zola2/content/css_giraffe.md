@@ -1,4 +1,4 @@
 +++
-title = "The obvious CSS giraffe layout"
+title = "CSS Giraffe"
 template = "giraffe.html"
 +++
