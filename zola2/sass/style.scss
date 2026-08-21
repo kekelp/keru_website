@@ -26,12 +26,6 @@ body, nav, a, .theme-toggle, time {
     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
-@media (prefers-reduced-motion: reduce) {
-    body, nav, a, .theme-toggle, time {
-        transition: none;
-    }
-}
-
 body {
     max-width: 48rem;
     margin: 2rem auto;
@@ -73,12 +67,11 @@ nav .brand {
 
 a {
     color: var(--accent);
-    text-decoration: none;
+    text-decoration: underline;
 }
 
 a:hover {
     color: var(--accent-hover);
-    text-decoration: underline;
 }
 
 .posts {
@@ -103,6 +96,33 @@ code {
     padding: 0.1em 0.35em;
     border-radius: 4px;
     font-size: 0.9em;
+}
+
+img {
+    display: block;
+    width: 60%;
+    max-width: 100%;
+    height: auto;
+    margin: 1.5rem auto;
+    border-radius: 6px;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    display: block;
+    overflow-x: auto;
+    font-size: 0.9em;
+}
+
+th, td {
+    border: 1px solid var(--border);
+    padding: 0.4rem 0.6rem;
+    text-align: left;
+}
+
+th {
+    color: var(--accent);
 }
 
 pre {
