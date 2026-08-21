@@ -20,7 +20,7 @@ In this layout, the multi-line paragraph fits to the width of the single-line la
 
 The first thing I did was trying to implement the `clay` algorithm in Keru, and despite sabotaging myself with a lot of AI assistance, I think I understood its algorithm well enough to conclude that it can't possibly solve this case.
 
-I also did some experiments with CSS layout, and couldn't get it to solve it either. Because of how complicated CSS is, it's still entirely possible that a way to solve exists, and I just didn't find the correct magic word to make it happen. What I can say with certainty is that writing it in [the obvious way](LINK_TO_GIRAFFE.aHTML) doesn't work: the giraffe stays at zero width.
+I also did some experiments with CSS layout, and couldn't get it to solve it either. Because of how complicated CSS is, it's still entirely possible that a way to solve exists, and I just didn't find the correct magic word to make it happen. What I can say with certainty is that writing it in <a href="/css-giraffe/" target="_blank" rel="noopener">the obvious way</a> doesn't work: the giraffe stays at zero width.
 
 ![Giraffe](giraffe_css.png)
  

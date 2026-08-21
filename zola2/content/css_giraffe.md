@@ -1,0 +1,48 @@
++++
+title = "The obvious CSS giraffe layout"
+template = "giraffe.html"
++++
+
+```html
+<style>
+  .hstack {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 10px;
+    padding: 10px;
+    background: hotpink;
+  }
+
+  .giraffe {
+    aspect-ratio: 0.5;
+    background: linear-gradient(0deg, red, blue);
+  }
+
+  .vstack {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: max-content;
+  }
+
+  .paragraph {
+    width: 0;
+    min-width: 100%;
+    text-align: justify;
+    font-size: 14px;
+    color: white;
+  }
+</style>
+
+<div class="hstack">
+  <div class="giraffe"></div>
+  <div class="vstack">
+    <div style="color:white">Single line text</div>
+    <div class="paragraph">Wrapping text with a lot of
+      text that overflows. Wrapping text with a lot of text
+      that overflows. Wrapping text with a lot of text that
+      overflows.</div>
+  </div>
+</div>
+```
