@@ -22,7 +22,7 @@ I also did some experiments with CSS layout, and couldn't get it to solve it eit
 ![Giraffe](giraffe_css.png)
  
 
-To be clear, I don't think this is necessarily a problem: especially in the case of `clay` there's nothing wrong with sticking to a simpler and faster algorithm if it works for the intended application. There's plenty of GUI programs that work great without any advanced layouts of this kind and don't run into any of these problems.
+To be clear, I don't think this is necessarily a huge problem: especially in the case of `clay` there's nothing wrong with sticking to a simpler and faster algorithm if it works for the intended application. There's plenty of GUI programs that work great without any advanced layouts of this kind and don't run into any of these issues.
 
 However, it's not uncommon to hear people complaining about the unfriendlyness of layout systems. If it was possible to find a more general solution that worked in a more predictable way without surprises, it might go a long way towards making the system feel more reliable and user-friendly.
 
@@ -30,7 +30,7 @@ My conclusion for now is that these limitations is due to the fact that most lay
 
 To understand what was going on, I tried drawing the giraffe on paper and asking myself what would an ideal layout engine do to solve this layout properly.
 
-![Giraffe on paper](giraffe_paper.png)
+{{ figure(src="giraffe_paper.png", caption="Working out the giraffe's dependency chain on paper.") }}
 
 It turns out that in this case there's a pretty straightforward dependency chain:
 
@@ -80,7 +80,7 @@ The single-line text is the starting point pushed to the queue, and the solver s
 
 ## Cycles
 
-You might be wondering, "what about cycles"? That's a fair question to have when dealing with any sort of graph. But in practice they aren't much of a problem.
+You might be wondering, "What about cycles"? That's a fair question to have when dealing with any sort of graph. But in practice they aren't much of a problem.
 
 The first thing to keep in mind is that most expressive layout systems with primitives like `Fit`, `Fill`, `AspectRatio` etc. allow the user to express logical cycles, even if they are never materialized into a real cycle in a graph. When the CSS algorithm encounters such a cycle, it fills in some fairly arbitrary and inconsistent numbers, and moves on. The bar is not very high here.
 
