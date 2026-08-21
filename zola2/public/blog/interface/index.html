@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>GUI library Interface — Keru and Friends</title>
+    <link rel="stylesheet" href="https://example.com/style.css">
+    <script>
+        try {
+            var t = localStorage.getItem('theme');
+            if (t) document.documentElement.setAttribute('data-theme', t);
+        } catch (e) {}
+    </script>
+</head>
+<body>
+    <nav>
+        <a class="brand" href="https://example.com">keru</a>
+        <a href="https://example.com/blog">blog</a>
+        <a href="https://github.com/kekelp/keru">github</a>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark mode"><span id="theme-label"></span> ◐</button>
+    </nav>
+    <main>
+        
+<article>
+    <h1>GUI library Interface</h1>
+    <time>2026-08-21</time>
+    <p>This is a blog post about the main library interface in Keru, the GUI library that I'm writing. It will show how the code for writing GUIs with Keru looks, and explain some of the goals and the implementation constraints that determine the shape of the interface.</p>
+<p>It might seem shallow to focus on the syntax, but in practice, the library interface is a big part of what determines whether a library is easy to use and to learn, whether it's flexible enough to be used in different kinds of projects, whether it's smooth or painful to integrate it into a bigger program, and so on.</p>
+<p>An important thing to remember is that while UI can be one of the most important parts of a program from the end user's point of view, the writer of the program usually has plenty of other things to worry about. If a GUI library is trying to help with the hard problems, and not just with the easy ones, it should be a relatively unobtrusive layer that can be easily laid on top of an already complicated program. The GUI is there so that the user accesses a program that can hopefully do something useful.</p>
+<p>For this reason, it's very important that a GUI library imposes as few restrictions as possible on the rest of the program's code. It shouldn't force the programmer to structure the program's data in a certain way, impose rules on when it can be accessed or mutated, or complicate the program's control flow with too many callbacks and indirections.</p>
+<p>This argument is a bit abstract, but it's why the interface tries to be as simple and minimal as possible.</p>
+<p>This is <a rel="external" href="https://github.com/kekelp/keru/blob/master/examples/minimal.rs">Keru's <code>minimal</code> example:</a></p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;" ><code data-lang="rust"><span class="giallo-l"><span style="color: #CBA6F7;">use</span><span style="color: #F9E2AF;"> keru</span><span style="color: #94E2D5;">::*</span><span style="color: #9399B2;">;</span></span>
+<span class="giallo-l"><span style="color: #CBA6F7;">use</span><span style="color: #F9E2AF;"> keru</span><span style="color: #94E2D5;">::</span><span style="color: #F9E2AF;">node_library</span><span style="color: #94E2D5;">::*</span><span style="color: #9399B2;">;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: #CBA6F7;">pub struct</span><span style="color: #F9E2AF;font-style: italic;"> State</span><span style="color: #9399B2;"> {</span></span>
+<span class="giallo-l"><span style="color: #CBA6F7;">    pub</span><span> count</span><span style="color: #94E2D5;">:</span><span style="color: #CBA6F7;"> i32</span><span style="color: #9399B2;">,</span></span>
+<span class="giallo-l"><span style="color: #9399B2;">}</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: #CBA6F7;">fn</span><span style="color: #89B4FA;font-style: italic;"> update_ui</span><span style="color: #9399B2;">(</span><span style="color: #EBA0AC;">state</span><span style="color: #94E2D5;">: &amp;</span><span style="color: #CBA6F7;">mut</span><span style="color: #F9E2AF;font-style: italic;"> State</span><span style="color: #9399B2;">,</span><span style="color: #EBA0AC;"> ui</span><span style="color: #94E2D5;">: &amp;</span><span style="color: #CBA6F7;">mut</span><span style="color: #F9E2AF;font-style: italic;"> Ui</span><span style="color: #9399B2;">) {</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">    // Define a unique identity for the button</span></span>
+<span class="giallo-l"><span style="color: #F9E2AF;font-style: italic;">    #</span><span style="color: #9399B2;">[</span><span style="color: #F9E2AF;font-style: italic;">node_key</span><span style="color: #9399B2;">]</span><span style="color: #CBA6F7;"> const</span><span style="color: #FAB387;"> INCREASE</span><span style="color: #94E2D5;">:</span><span style="color: #F9E2AF;font-style: italic;"> NodeKey</span><span style="color: #9399B2;">;</span></span>
+<span class="giallo-l"><span>    </span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">    // Create a Node struct describing a button</span></span>
+<span class="giallo-l"><span style="color: #CBA6F7;">    let</span><span> increase_button</span><span style="color: #94E2D5;">:</span><span style="color: #F9E2AF;font-style: italic;"> Node</span><span style="color: #94E2D5;"> =</span><span style="color: #FAB387;"> BUTTON</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">        .</span><span style="color: #89B4FA;font-style: italic;">color</span><span style="color: #9399B2;">(</span><span style="color: #F9E2AF;">Color</span><span style="color: #94E2D5;">::</span><span style="color: #FAB387;">RED</span><span style="color: #9399B2;">)</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">        .</span><span style="color: #89B4FA;font-style: italic;">text</span><span style="color: #9399B2;">(</span><span style="color: #A6E3A1;">&quot;Increase&quot;</span><span style="color: #9399B2;">)</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">        .</span><span style="color: #89B4FA;font-style: italic;">key</span><span style="color: #9399B2;">(</span><span style="color: #FAB387;">INCREASE</span><span style="color: #9399B2;">);</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">    // Place the nodes into the tree and define the layout</span></span>
+<span class="giallo-l"><span>    ui</span><span style="color: #94E2D5;">.</span><span style="color: #89B4FA;font-style: italic;">add</span><span style="color: #9399B2;">(</span><span style="color: #F9E2AF;font-style: italic;">V_STACK</span><span style="color: #9399B2;">)</span><span style="color: #94E2D5;">.</span><span style="color: #89B4FA;font-style: italic;">nest</span><span style="color: #9399B2;">(</span><span style="color: #94E2D5;">||</span><span style="color: #9399B2;"> {</span></span>
+<span class="giallo-l"><span>        ui</span><span style="color: #94E2D5;">.</span><span style="color: #89B4FA;font-style: italic;">add</span><span style="color: #9399B2;">(</span><span>increase_button</span><span style="color: #9399B2;">);</span></span>
+<span class="giallo-l"><span>        ui</span><span style="color: #94E2D5;">.</span><span style="color: #89B4FA;font-style: italic;">add</span><span style="color: #9399B2;">(</span><span style="color: #FAB387;">LABEL</span><span style="color: #94E2D5;">.</span><span style="color: #89B4FA;font-style: italic;">text</span><span style="color: #9399B2;">(</span><span style="color: #94E2D5;">&amp;</span><span>state</span><span style="color: #94E2D5;">.</span><span style="color: #89B4FA;">count</span><span style="color: #94E2D5;">.</span><span style="color: #89B4FA;font-style: italic;">to_string</span><span style="color: #9399B2;">()));</span></span>
+<span class="giallo-l"><span style="color: #9399B2;">    });</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">    // Change the state in response to events</span></span>
+<span class="giallo-l"><span style="color: #CBA6F7;">    if</span><span> ui</span><span style="color: #94E2D5;">.</span><span style="color: #89B4FA;font-style: italic;">is_clicked</span><span style="color: #9399B2;">(</span><span style="color: #FAB387;">INCREASE</span><span style="color: #9399B2;">) {</span></span>
+<span class="giallo-l"><span>        state</span><span style="color: #94E2D5;">.</span><span>count </span><span style="color: #94E2D5;">+=</span><span style="color: #FAB387;"> 1</span><span style="color: #9399B2;">;</span></span>
+<span class="giallo-l"><span style="color: #9399B2;">    }</span></span>
+<span class="giallo-l"><span style="color: #9399B2;">}</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: #CBA6F7;">fn</span><span style="color: #89B4FA;font-style: italic;"> main</span><span style="color: #9399B2;">() {</span></span>
+<span class="giallo-l"><span style="color: #CBA6F7;">    let</span><span> state</span><span style="color: #94E2D5;"> =</span><span style="color: #F9E2AF;font-style: italic;"> State</span><span style="color: #9399B2;"> {</span><span> count</span><span style="color: #94E2D5;">:</span><span style="color: #FAB387;"> 0</span><span style="color: #9399B2;"> };</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">    // Use a wrapper that sets up a winit/wgpu loop and runs our `update_ui` on every update.</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">    // This is just for examples! Keru is meant to be used as part of a user-controlled winit/wgpu loop.</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">    // Setting up a winit/wgpu loop is less than 100 lines of boilerplate.</span></span>
+<span class="giallo-l"><span style="color: #F9E2AF;">    example_window_loop</span><span style="color: #94E2D5;">::</span><span style="color: #89B4FA;font-style: italic;">run_example_loop</span><span style="color: #9399B2;">(</span><span>state</span><span style="color: #9399B2;">,</span><span> update_ui</span><span style="color: #9399B2;">);</span></span>
+<span class="giallo-l"><span style="color: #9399B2;">}</span></span></code></pre>
+<p>Looking at the syntax, you might be reminded of "immediate-mode" GUI. However, this is not an immediate-mode library, at least not in the sense in which most people use the term. The <code>Ui</code> struct retains the node tree and the whole state of the GUI across frames.</p>
+<p>When the <code>update_ui</code> function runs, it redeclares the desired state of the whole GUI. While this happens, the <code>Ui</code> updates the retained state to match the declared one, and schedules relayouts or repaints as needed.</p>
+<p>Back to the syntax:</p>
+<h2 id="node-keys">Node Keys</h2>
+<p>The first line in <code>update_ui</code> is a tiny proc macro that defines a unique compile-time ID for a GUI node.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;" ><code data-lang="plain"><span class="giallo-l"><span>#[node_key] const INCREASE: NodeKey;</span></span></code></pre>
+<p>Internally, the <code>#[node_key]</code> macro just rolls a random <code>u64</code> and uses it to fill in the value of the <code>const</code>.</p>
+<p>Rust proc macros get a lot of hate, but they work great here. In some other libraries, users have to create IDs themselves by manually providing unique strings.</p>
+<p>Note that this doesn't mean that ALL nodes need an explicit key: Keru can also generate implicit keys from source code location, position in the runtime GUI tree, and more. But since it's so convenient to create explicit ones, it leans on them quite a bit as a general-purpose way to refer to GUI nodes from anywhere in the code.</p>
+<h2 id="nodes">Nodes</h2>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;" ><code data-lang="plain"><span class="giallo-l"><span>let increase_button: Node = BUTTON</span></span>
+<span class="giallo-l"><span>    .color(Color::RED)</span></span>
+<span class="giallo-l"><span>    .text(&quot;Increase&quot;)</span></span>
+<span class="giallo-l"><span>    .key(INCREASE);</span></span></code></pre>
+<p><code>increase_button</code> is a <code>Node</code>, a struct that describes a node in the GUI. In Keru, "everything is a node", and the <code>Node</code>'s fields can be configured to turn it into a button, a text element, an image, a stack container, a grid container, a vector shape, etc.</p>
+<p>In this case, we start with <code>BUTTON</code>, which is a preset <code>Node</code> constant, and use builder methods to configure it.</p>
+<p>We also stick the <code>INCREASE</code> key in, to associate the node with the key.</p>
+<p>The fact that "everything is a node" helps a lot in making the library easier to learn and understand. Except for the largely optional <code>Component</code> trait, Keru's interface is basically all contained in the above example:
+all GUIs are built by <code>add()</code>ing and <code>nest()</code>ing different kinds of <code>Node</code>s.</p>
+<h2 id="the-tree">The Tree</h2>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;" ><code data-lang="plain"><span class="giallo-l"><span>// Place the nodes into the tree and define the layout</span></span>
+<span class="giallo-l"><span>ui.add(V_STACK).nest(|| {</span></span>
+<span class="giallo-l"><span>    ui.add(increase_button);</span></span>
+<span class="giallo-l"><span>    ui.add(LABEL.text(&amp;state.count.to_string()));</span></span>
+<span class="giallo-l"><span>});</span></span></code></pre>
+<p>The <code>Ui</code> is the struct that holds the full retained state of the whole GUI. When <code>update_ui</code> runs, we call <code>add()</code> and <code>nest()</code> to redeclare what nodes should be part of the tree, and the parent-child relationships between them.</p>
+<p>Since <code>increase_button</code> is a plain value struct, we choose to keep it separate from this part of the code, so that the tree structure remains understandable at a glance. Of course, nothing is stopping us from inlining the <code>V_STACK</code> and the <code>LABEL</code>.</p>
+<p>The <code>nest</code> closure doesn't have a <code>|ui|</code> parameter, and uses a thread-local value to keep track of the current parent. Many <code>egui</code> users are probably familiar with the kind of borrow errors that arise when the user needs to continuously reborrow the <code>ui</code> on each level of nesting. A plain <code>||</code> closure avoids these errors entirely.</p>
+<p>That said, using a closure still comes with some downsides. For example, this doesn't work:</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;" ><code data-lang="plain"><span class="giallo-l"><span>let result;</span></span>
+<span class="giallo-l"><span>ui.add(V_STACK).nest(|| {</span></span>
+<span class="giallo-l"><span>    result = add_component(ui);</span></span>
+<span class="giallo-l"><span>});</span></span>
+<span class="giallo-l"><span>return result;</span></span></code></pre>
+<p>For all the compiler knows, <code>nest()</code> might decide to return without doing anything with our closure, so it can't tell if the code for our nested elements is going to be executed at all. So we'll get an error about <code>result</code> being potentially uninitialized. We can work around this by returning the value from the closure or making result and <code>Option</code>, but it sure would be nicer if it worked out of the box.</p>
+<p>For more complicated reasons, it also gets in the way when trying to implement the familiar immediate-mode pattern <code>ui.add(BUTTON).is_clicked()</code>.
+We can't have nice syntax for both <code>nest</code> and <code>is_clicked()</code> at the same time. In Keru, we have to awkwardly pass the <code>ui</code> reference back into it: <code>if ui.add(BUTTON).is_clicked(ui) { ... }</code></p>
+<p>All we're trying to do with the closure is to call a <code>push_parent()</code> function before the inner code, and <code>pop_parent()</code> after. Closures can do this, but it would be much better to have a dedicated language construct to do this sort of thing, like Python's <code>with</code> or C#'s <code>using</code>.</p>
+<p>As is often the case in life, we can derive comfort by looking at the misfortunes of others. Few languages provide good tools for this, so library authors use all sorts of creative workarounds. Some Zig libraries ask the user to open a block and call <code>defer node.close()</code> manually after adding a node. C libraries like <code>clay</code> use complicated macro tricks. The C GUI library used for the RAD debugger project uses an especially funny solution: a macro that wraps the code in a <code>for</code> statement, sticking the <code>push_parent</code> in the loop initialization and the <code>pop_parent()</code> in the increment clause. Calling <code>break</code> inside the body breaks it completely.
+Even in the languages that do have a dedicated construct, like Python and C#, it's interesting to note that it was added to help with resource deallocation, not for something as lowbrow as programming GUIs.</p>
+<p>All in all, the <code>||</code> closure doesn't look like a bad solution if we look at the bigger picture, and there's some value in using a "regular" language construct like a closure rather than a more ad-hoc one or a macro.</p>
+<h2 id="events">Events</h2>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;" ><code data-lang="plain"><span class="giallo-l"><span>// Change the state in response to events</span></span>
+<span class="giallo-l"><span>if ui.is_clicked(INCREASE) {</span></span>
+<span class="giallo-l"><span>    state.count += 1;</span></span>
+<span class="giallo-l"><span>}</span></span></code></pre>
+<p>Events run in immediate-mode style, without callbacks. We just ask the <code>Ui</code> if a node was clicked in the last frame, and run some code as a response. This happens at the same time as we redeclare the GUI.</p>
+<p>In callback-based systems, there's usually no safe way for the program to truly own its data. The data either is owned by the GUI library directly, or it has to be wrapped into <code>Rc</code>/<code>Arc</code>-based containers that allow callbacks to hold references to it. There are some escape hatches here, but I've never seen it done in a way that wasn't very complicated and limiting.</p>
+<p>Even if that wasn't the case, I'd probably still try to avoid callbacks either way just for the sake of not complicating the control flow.</p>
+<p>However, Keru's solution is not as inflexible as in most immediate-mode libraries, thanks to the power of <code>NodeKey</code>s and to the fact that the <code>Ui</code> is actually fully retained.</p>
+<p>This code can be run from anywhere in the program. We can move it into another function entirely to separate the effects from the presentation, or move it just a couple lines to avoid mucking up the nested <code>add()</code> calls that define the layout. And of course we can choose to not separate it at all and write it right below the <code>add()</code>.</p>
+<p>Dedicated immediate-mode fans can even fall back to the familiar <code>if ui.add(BUTTON).is_clicked(ui)</code> form, as mentioned above, if they can stomach having to pass in the <code>ui</code>.</p>
+<h2 id="consequences-on-the-architecture">Consequences on the architecture</h2>
+<p>Whether a library embraces or denies them, callbacks are probably the most significant example of how the interface ends up deeply influencing the internal architecture. When using callbacks, all the extra complexity in managing the state usually ends up leaking into the interface, either in the form of the user having to manually clone their state handles, or in other ways.</p>
+<p>Generally, not using callbacks also means that the library has to be ready to re-execute all or most of the user's redeclaration code whenever something important happens, so that all the event-response code written inline can be executed as well.</p>
+<p>This doesn't mean that we have to become "immediate mode": we're just redeclaring the GUI and updating it, not necessarily rebuilding it from scratch. Also, it doesn't mean that we have to do that "on every frame": nodes annotate the types of events that they care about, so if a click lands on a node not set to listen to it, or if the user is just moving the mouse around or scrolling, the Ui knows that nothing needs to be rerun.</p>
+<p>For this reason, we can also spare ourselves the headache of considering a truly reactive architecture, where the GUI would detect the dependencies of GUI elements on individual state variables and update them without a full redeclaration step. This would be very complicated, and it would have deep consequences of its own for the user's ability to manage his state freely and to write the GUI code in a simple and flexible way. But such an architecture would almost surely require callbacks anyway, so as long as we remain convinced that callbacks are already incompatible with our goals, we can discard it with this simpler argument.</p>
+<p>That being said, proponents of reactive GUI don't always insist on fully automatic dependency tracking. It's also common to implement some partial reactivity on top of a mostly redeclaration-based system, where the user annotates a part of the code and possibly does some manual change-tracking, then the library simply skips re-executing it if it can. This sort of thing is not incompatible with Keru's model. The library has some experimental code to do this, even though I think it's generally still not worth the effort.</p>
+<p>Hopefully these arguments about the interface are enough to justify Keru's decision of not embracing reactivity. In the future I will write a new blog post analyzing this topic in more detail, going through how the declaration code, the diffing and the updates to the retained state are implemented in Keru.</p>
+<p>In the meantime, it helps to remember that many existing libraries like Iced are mostly non-reactive and rerun the whole GUI declaration code on every interaction, and it doesn't seem to be a problem. The code just happens to look different enough from naive immediate-mode that it doesn't raise suspicion.</p>
+<h2 id="the-component-trait">The Component trait</h2>
+<p>The minimal example above shows the basic primitives of the library, and it's possible to create fairly complicated GUIs by composing them with regular functions, variables and constants. However, there's also an experimental <code>Component</code> trait that's meant to streamline the sort of composition that's common for self-contained GUI widgets, such as a reusable color picker or rich text edit box.</p>
+<p>Besides helping with composition, <code>Component</code>s can also hold their own local state. For example, a color picker might not want to logically "own" the color that it sets, but it makes sense for it to own some specific local settings about the color space that it's using or its shape. That way, the user can add multiple color pickers each with its own independent settings without worrying about making space for all of them in the main program state.</p>
+<p>This ability to hold local state is the only feature that's currently only accessible through <code>Component</code>s, and not when composing nodes manually.</p>
+<p>I won't go into any more detail here, partly because <code>Component</code>s are still experimental and I don't consider them part of the library's core interface, at least not yet. However, here's a <a rel="external" href="https://github.com/kekelp/keru/blob/master/examples/03_components.rs">commented example showing how they work.</a></p>
+<h2 id="thanks-for-reading">Thanks for Reading</h2>
+<p>If you would like to learn more and see what Keru looks like beyond the basic "Hello world" code, you can check out <a rel="external" href="https://github.com/kekelp/keru/">Keru's github page</a> and explore the examples, which show advanced layout and grids, animations, drag and drop, canvas drawing, components with local state, optional imperative tree manipulation, integration with custom wgpu rendering, etc.</p>
+<p>Keru is a pure Rust library and uses <code>winit</code> and <code>wgpu</code>, so trying it out should be relatively easy on most systems.</p>
+<p>If you are interested in a more technical discussion, the next blog post will be about Keru's unique layout algorithm, which is completely experimental and different from most GUI libraries.</p>
+
+</article>
+
+    </main>
+    <script>
+        var root = document.documentElement;
+        var label = document.getElementById('theme-label');
+
+        function currentTheme() {
+            return root.getAttribute('data-theme') ||
+                (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        }
+        function updateLabel() {
+            label.textContent = currentTheme() === 'dark' ? 'dark' : 'light';
+        }
+        updateLabel();
+
+        document.getElementById('theme-toggle').addEventListener('click', function () {
+            var next = currentTheme() === 'dark' ? 'light' : 'dark';
+            root.setAttribute('data-theme', next);
+            try { localStorage.setItem('theme', next); } catch (e) {}
+            updateLabel();
+        });
+    </script>
+</body>
+</html>

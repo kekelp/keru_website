@@ -7,6 +7,10 @@
         <loc>https://example.com/blog/</loc>
     </url>
     <url>
+        <loc>https://example.com/blog/interface/</loc>
+        <lastmod>2026-08-21</lastmod>
+    </url>
+    <url>
         <loc>https://example.com/blog/slop1/</loc>
         <lastmod>2026-08-21</lastmod>
     </url>
