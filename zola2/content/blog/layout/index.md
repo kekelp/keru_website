@@ -11,9 +11,12 @@ This time, I finally learned that GUI layout is more of an art than a science: a
 
 The enlightening example is this innocent-looking giraffe layout, taken from [this blog post by Edaqa Mortoray](https://mortoray.com/why_ui_layout_calculations_are_slow/):
 
-![Giraffe](giraffe_original.png)
+<figure>
+    <img src="giraffe_original.png" alt="Edaqa Mortoray's giraffe layout.">
+    <figcaption>The dog picture doesn't really partecipate in the layout in any interesting way.</figcaption>
+</figure>
 
-In this layout, the multi-line paragraph fits to the width of the single-line label. The giraffe fits the height of the whole right section, and its width is half of its height, to preserve the aspect ratio of the bitmap image. As it turns out, most algorithms can't solve this. (The dog picture doesn't really partecipate in the layout in any interesting way.)
+In this layout, the multi-line paragraph fits to the width of the single-line label. The giraffe fits the height of the whole right section, and its width is half of its height, to preserve the aspect ratio of the bitmap image. As it turns out, most algorithms can't solve this.
 
 The first thing I did was trying to implement the `clay` algorithm in Keru, and despite sabotaging myself with a lot of AI assistance, I think I understood its algorithm well enough to conclude that it can't possibly solve this case.
 

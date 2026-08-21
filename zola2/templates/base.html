@@ -30,7 +30,7 @@
     <script>
         // 'dark'/'light' only appear here, at the DOM boundary: they're the
         // contract with the CSS ([data-theme="..."]). Everything else is a boolean.
-        var DARK = 'Dark', LIGHT = 'Light';
+        var DARK = 'dark', LIGHT = 'light';
         var root = document.documentElement;
         var label = document.getElementById('theme-label');
 
@@ -38,14 +38,17 @@
             var t = root.getAttribute('data-theme');
             return t ? t === DARK : window.matchMedia('(prefers-color-scheme: dark)').matches;
         }
+        // Capitalized label for display, lowercase discriminant for the CSS.
+        function labelFor(dark) {
+            return dark ? 'Dark' : 'Light';
+        }
         function apply(dark) {
-            var name = dark ? DARK : LIGHT;
-            root.setAttribute('data-theme', name);
-            label.textContent = name;
-            try { localStorage.setItem('theme', name); } catch (e) {}
+            root.setAttribute('data-theme', dark ? DARK : LIGHT);
+            label.textContent = labelFor(dark);
+            try { localStorage.setItem('theme', dark ? DARK : LIGHT); } catch (e) {}
         }
 
-        label.textContent = isDark() ? DARK : LIGHT;
+        label.textContent = labelFor(isDark());
         document.getElementById('theme-toggle').addEventListener('click', function () {
             apply(!isDark());
         });
