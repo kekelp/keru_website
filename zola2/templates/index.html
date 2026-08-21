@@ -1,12 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<ul class="posts">
-    {% for page in section.pages %}
-    <li>
-        <a href="{{ page.permalink }}">{{ page.title }}</a>
-        {% if page.date %}<time>{{ page.date | date(format="%Y-%m-%d") }}</time>{% endif %}
-    </li>
-    {% endfor %}
-</ul>
+<h1>Welcome</h1>
+<p>This is the front page. More to come.</p>
+<p><a href="{{ get_url(path='/blog') }}">Read the blog →</a></p>
 {% endblock %}

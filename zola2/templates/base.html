@@ -7,9 +7,11 @@
     <link rel="stylesheet" href="{{ get_url(path='style.css') }}">
 </head>
 <body>
-    <header>
-        <a href="{{ get_url(path='/') }}"><strong>{{ config.title | default(value="Blog") }}</strong></a>
-    </header>
+    <nav>
+        <a class="brand" href="{{ get_url(path='/') }}">keru</a>
+        <a href="{{ get_url(path='/blog') }}">blog</a>
+        <a href="https://github.com/kekelp">github</a>
+    </nav>
     <main>
         {% block content %}{% endblock %}
     </main>
