@@ -27,23 +27,26 @@
 
     </main>
     <script>
+        // 'dark'/'light' only appear here, at the DOM boundary: they're the
+        // contract with the CSS ([data-theme="..."]). Everything else is a boolean.
+        var DARK = 'dark', LIGHT = 'light';
         var root = document.documentElement;
         var label = document.getElementById('theme-label');
 
-        function currentTheme() {
-            return root.getAttribute('data-theme') ||
-                (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        function isDark() {
+            var t = root.getAttribute('data-theme');
+            return t ? t === DARK : window.matchMedia('(prefers-color-scheme: dark)').matches;
         }
-        function updateLabel() {
-            label.textContent = currentTheme() === 'dark' ? 'dark' : 'light';
+        function apply(dark) {
+            var name = dark ? DARK : LIGHT;
+            root.setAttribute('data-theme', name);
+            label.textContent = name;
+            try { localStorage.setItem('theme', name); } catch (e) {}
         }
-        updateLabel();
 
+        label.textContent = isDark() ? DARK : LIGHT;
         document.getElementById('theme-toggle').addEventListener('click', function () {
-            var next = currentTheme() === 'dark' ? 'light' : 'dark';
-            root.setAttribute('data-theme', next);
-            try { localStorage.setItem('theme', next); } catch (e) {}
-            updateLabel();
+            apply(!isDark());
         });
     </script>
 </body>
