@@ -8,12 +8,12 @@
 }
 
 @mixin dark {
-    --bg: #0f1417;
+    --bg: #1c2327;
     --fg: #e6edf3;
     --muted: #8b98a5;
     --border: #232b31;
-    --accent: #3fb6f0;
-    --accent-hover: #7dd0f7;
+    --accent: #4ab4e9;
+    --accent-hover: #8ecce9;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -27,7 +27,7 @@ body, nav, a, .theme-toggle, time {
 }
 
 body {
-    max-width: 48rem;
+    max-width: 40rem;
     margin: 2rem auto;
     padding: 0 1rem;
     font-family: system-ui, sans-serif;

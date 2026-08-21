@@ -14,10 +14,15 @@
 </head>
 <body>
     <nav>
-        <a class="brand" href="{{ get_url(path='/') }}">keru</a>
-        <a href="{{ get_url(path='/blog') }}">blog</a>
-        <a href="https://github.com/kekelp/keru">github</a>
-        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark mode"><span id="theme-label"></span> ◐</button>
+        <a href="{{ get_url(path='/blog') }}">Blog</a>
+        <a class="brand" href="{{ get_url(path='/') }}">Keru</a>
+        <button
+            id="theme-toggle"
+            class="theme-toggle"
+            aria-label="Toggle dark mode"
+        >
+            <span id="theme-label"></span> ◐
+        </button>
     </nav>
     <main>
         {% block content %}{% endblock %}
@@ -25,7 +30,7 @@
     <script>
         // 'dark'/'light' only appear here, at the DOM boundary: they're the
         // contract with the CSS ([data-theme="..."]). Everything else is a boolean.
-        var DARK = 'dark', LIGHT = 'light';
+        var DARK = 'Dark', LIGHT = 'Light';
         var root = document.documentElement;
         var label = document.getElementById('theme-label');
 
