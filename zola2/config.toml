@@ -1,0 +1,9 @@
+base_url = "https://example.com"
+title = "Keru and Friends"
+compile_sass = true
+build_search_index = false
+
+[markdown.highlighting]
+theme = "catppuccin-mocha"
+
+[extra]
