@@ -71,35 +71,35 @@
 <p>Back to the syntax:</p>
 <h2 id="node-keys">Node Keys</h2>
 <p>The first line in <code>update_ui</code> is a tiny proc macro that defines a unique compile-time ID for a GUI node.</p>
-<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;" ><code data-lang="plain"><span class="giallo-l"><span>#[node_key] const INCREASE: NodeKey;</span></span></code></pre>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;" ><code data-lang="rust"><span class="giallo-l"><span style="color: #F9E2AF;font-style: italic;">#</span><span style="color: #9399B2;">[</span><span style="color: #F9E2AF;font-style: italic;">node_key</span><span style="color: #9399B2;">]</span><span style="color: #CBA6F7;"> const</span><span style="color: #FAB387;"> INCREASE</span><span style="color: #94E2D5;">:</span><span style="color: #F9E2AF;font-style: italic;"> NodeKey</span><span style="color: #9399B2;">;</span></span></code></pre>
 <p>Internally, the <code>#[node_key]</code> macro just rolls a random <code>u64</code> and uses it to fill in the value of the <code>const</code>.</p>
 <p>Rust proc macros get a lot of hate, but they work great here. In some other libraries, users have to create IDs themselves by manually providing unique strings.</p>
 <p>Note that this doesn't mean that ALL nodes need an explicit key: Keru can also generate implicit keys from source code location, position in the runtime GUI tree, and more. But since it's so convenient to create explicit ones, it leans on them quite a bit as a general-purpose way to refer to GUI nodes from anywhere in the code.</p>
 <h2 id="nodes">Nodes</h2>
-<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;" ><code data-lang="plain"><span class="giallo-l"><span>let increase_button: Node = BUTTON</span></span>
-<span class="giallo-l"><span>    .color(Color::RED)</span></span>
-<span class="giallo-l"><span>    .text(&quot;Increase&quot;)</span></span>
-<span class="giallo-l"><span>    .key(INCREASE);</span></span></code></pre>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;" ><code data-lang="rust"><span class="giallo-l"><span style="color: #CBA6F7;">let</span><span> increase_button</span><span style="color: #94E2D5;">:</span><span style="color: #F9E2AF;font-style: italic;"> Node</span><span style="color: #94E2D5;"> =</span><span style="color: #FAB387;"> BUTTON</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">    .</span><span style="color: #89B4FA;font-style: italic;">color</span><span style="color: #9399B2;">(</span><span style="color: #F9E2AF;">Color</span><span style="color: #94E2D5;">::</span><span style="color: #FAB387;">RED</span><span style="color: #9399B2;">)</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">    .</span><span style="color: #89B4FA;font-style: italic;">text</span><span style="color: #9399B2;">(</span><span style="color: #A6E3A1;">&quot;Increase&quot;</span><span style="color: #9399B2;">)</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">    .</span><span style="color: #89B4FA;font-style: italic;">key</span><span style="color: #9399B2;">(</span><span style="color: #FAB387;">INCREASE</span><span style="color: #9399B2;">);</span></span></code></pre>
 <p><code>increase_button</code> is a <code>Node</code>, a struct that describes a node in the GUI. In Keru, "everything is a node", and the <code>Node</code>'s fields can be configured to turn it into a button, a text element, an image, a stack container, a grid container, a vector shape, etc.</p>
 <p>In this case, we start with <code>BUTTON</code>, which is a preset <code>Node</code> constant, and use builder methods to configure it.</p>
 <p>We also stick the <code>INCREASE</code> key in, to associate the node with the key.</p>
 <p>The fact that "everything is a node" helps a lot in making the library easier to learn and understand. Except for the largely optional <code>Component</code> trait, Keru's interface is basically all contained in the above example:
 all GUIs are built by <code>add()</code>ing and <code>nest()</code>ing different kinds of <code>Node</code>s.</p>
 <h2 id="the-tree">The Tree</h2>
-<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;" ><code data-lang="plain"><span class="giallo-l"><span>// Place the nodes into the tree and define the layout</span></span>
-<span class="giallo-l"><span>ui.add(V_STACK).nest(|| {</span></span>
-<span class="giallo-l"><span>    ui.add(increase_button);</span></span>
-<span class="giallo-l"><span>    ui.add(LABEL.text(&amp;state.count.to_string()));</span></span>
-<span class="giallo-l"><span>});</span></span></code></pre>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;" ><code data-lang="rust"><span class="giallo-l"><span style="color: #9399B2;font-style: italic;">// Place the nodes into the tree and define the layout</span></span>
+<span class="giallo-l"><span>ui</span><span style="color: #94E2D5;">.</span><span style="color: #89B4FA;font-style: italic;">add</span><span style="color: #9399B2;">(</span><span style="color: #F9E2AF;font-style: italic;">V_STACK</span><span style="color: #9399B2;">)</span><span style="color: #94E2D5;">.</span><span style="color: #89B4FA;font-style: italic;">nest</span><span style="color: #9399B2;">(</span><span style="color: #94E2D5;">||</span><span style="color: #9399B2;"> {</span></span>
+<span class="giallo-l"><span>    ui</span><span style="color: #94E2D5;">.</span><span style="color: #89B4FA;font-style: italic;">add</span><span style="color: #9399B2;">(</span><span>increase_button</span><span style="color: #9399B2;">);</span></span>
+<span class="giallo-l"><span>    ui</span><span style="color: #94E2D5;">.</span><span style="color: #89B4FA;font-style: italic;">add</span><span style="color: #9399B2;">(</span><span style="color: #FAB387;">LABEL</span><span style="color: #94E2D5;">.</span><span style="color: #89B4FA;font-style: italic;">text</span><span style="color: #9399B2;">(</span><span style="color: #94E2D5;">&amp;</span><span>state</span><span style="color: #94E2D5;">.</span><span style="color: #89B4FA;">count</span><span style="color: #94E2D5;">.</span><span style="color: #89B4FA;font-style: italic;">to_string</span><span style="color: #9399B2;">()));</span></span>
+<span class="giallo-l"><span style="color: #9399B2;">});</span></span></code></pre>
 <p>The <code>Ui</code> is the struct that holds the full retained state of the whole GUI. When <code>update_ui</code> runs, we call <code>add()</code> and <code>nest()</code> to redeclare what nodes should be part of the tree, and the parent-child relationships between them.</p>
 <p>Since <code>increase_button</code> is a plain value struct, we choose to keep it separate from this part of the code, so that the tree structure remains understandable at a glance. Of course, nothing is stopping us from inlining the <code>V_STACK</code> and the <code>LABEL</code>.</p>
 <p>The <code>nest</code> closure doesn't have a <code>|ui|</code> parameter, and uses a thread-local value to keep track of the current parent. Many <code>egui</code> users are probably familiar with the kind of borrow errors that arise when the user needs to continuously reborrow the <code>ui</code> on each level of nesting. A plain <code>||</code> closure avoids these errors entirely.</p>
 <p>That said, using a closure still comes with some downsides. For example, this doesn't work:</p>
-<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;" ><code data-lang="plain"><span class="giallo-l"><span>let result;</span></span>
-<span class="giallo-l"><span>ui.add(V_STACK).nest(|| {</span></span>
-<span class="giallo-l"><span>    result = add_component(ui);</span></span>
-<span class="giallo-l"><span>});</span></span>
-<span class="giallo-l"><span>return result;</span></span></code></pre>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;" ><code data-lang="rust"><span class="giallo-l"><span style="color: #CBA6F7;">let</span><span> result</span><span style="color: #9399B2;">;</span></span>
+<span class="giallo-l"><span>ui</span><span style="color: #94E2D5;">.</span><span style="color: #89B4FA;font-style: italic;">add</span><span style="color: #9399B2;">(</span><span style="color: #F9E2AF;font-style: italic;">V_STACK</span><span style="color: #9399B2;">)</span><span style="color: #94E2D5;">.</span><span style="color: #89B4FA;font-style: italic;">nest</span><span style="color: #9399B2;">(</span><span style="color: #94E2D5;">||</span><span style="color: #9399B2;"> {</span></span>
+<span class="giallo-l"><span>    result</span><span style="color: #94E2D5;"> =</span><span style="color: #89B4FA;font-style: italic;"> add_component</span><span style="color: #9399B2;">(</span><span>ui</span><span style="color: #9399B2;">);</span></span>
+<span class="giallo-l"><span style="color: #9399B2;">});</span></span>
+<span class="giallo-l"><span style="color: #CBA6F7;">return</span><span> result</span><span style="color: #9399B2;">;</span></span></code></pre>
 <p>For all the compiler knows, <code>nest()</code> might decide to return without doing anything with our closure, so it can't tell if the code for our nested elements is going to be executed at all. So we'll get an error about <code>result</code> being potentially uninitialized. We can work around this by returning the value from the closure or making result and <code>Option</code>, but it sure would be nicer if it worked out of the box.</p>
 <p>For more complicated reasons, it also gets in the way when trying to implement the familiar immediate-mode pattern <code>ui.add(BUTTON).is_clicked()</code>.
 We can't have nice syntax for both <code>nest</code> and <code>is_clicked()</code> at the same time. In Keru, we have to awkwardly pass the <code>ui</code> reference back into it: <code>if ui.add(BUTTON).is_clicked(ui) { ... }</code></p>
@@ -108,10 +108,10 @@ We can't have nice syntax for both <code>nest</code> and <code>is_clicked()</cod
 Even in the languages that do have a dedicated construct, like Python and C#, it's interesting to note that it was added to help with resource deallocation, not for something as lowbrow as programming GUIs.</p>
 <p>All in all, the <code>||</code> closure doesn't look like a bad solution if we look at the bigger picture, and there's some value in using a "regular" language construct like a closure rather than a more ad-hoc one or a macro.</p>
 <h2 id="events">Events</h2>
-<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;" ><code data-lang="plain"><span class="giallo-l"><span>// Change the state in response to events</span></span>
-<span class="giallo-l"><span>if ui.is_clicked(INCREASE) {</span></span>
-<span class="giallo-l"><span>    state.count += 1;</span></span>
-<span class="giallo-l"><span>}</span></span></code></pre>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;" ><code data-lang="rust"><span class="giallo-l"><span style="color: #9399B2;font-style: italic;">// Change the state in response to events</span></span>
+<span class="giallo-l"><span style="color: #CBA6F7;">if</span><span> ui</span><span style="color: #94E2D5;">.</span><span style="color: #89B4FA;font-style: italic;">is_clicked</span><span style="color: #9399B2;">(</span><span style="color: #FAB387;">INCREASE</span><span style="color: #9399B2;">) {</span></span>
+<span class="giallo-l"><span>    state</span><span style="color: #94E2D5;">.</span><span>count </span><span style="color: #94E2D5;">+=</span><span style="color: #FAB387;"> 1</span><span style="color: #9399B2;">;</span></span>
+<span class="giallo-l"><span style="color: #9399B2;">}</span></span></code></pre>
 <p>Events run in immediate-mode style, without callbacks. We just ask the <code>Ui</code> if a node was clicked in the last frame, and run some code as a response. This happens at the same time as we redeclare the GUI.</p>
 <p>In callback-based systems, there's usually no safe way for the program to truly own its data. The data either is owned by the GUI library directly, or it has to be wrapped into <code>Rc</code>/<code>Arc</code>-based containers that allow callbacks to hold references to it. There are some escape hatches here, but I've never seen it done in a way that wasn't very complicated and limiting.</p>
 <p>Even if that wasn't the case, I'd probably still try to avoid callbacks either way just for the sake of not complicating the control flow.</p>
