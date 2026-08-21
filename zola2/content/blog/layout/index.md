@@ -1,5 +1,5 @@
 +++
-title = "A New GUI Layout Algorithm??"
+title = "A New GUI Layout Algorithm?"
 date = 2026-08-21
 +++
 
@@ -30,7 +30,10 @@ My conclusion for now is that these limitations is due to the fact that most lay
 
 To understand what was going on, I tried drawing the giraffe on paper and asking myself what would an ideal layout engine do to solve this layout properly.
 
-{{ figure(src="giraffe_paper.png", caption="Working out the giraffe's dependency chain on paper.") }}
+<figure>
+    <img src="giraffe_paper.png" alt="Working out the giraffe's dependency chain on paper.">
+    <figcaption>Working out the giraffe's dependency chain on paper.</figcaption>
+</figure>
 
 It turns out that in this case there's a pretty straightforward dependency chain:
 
