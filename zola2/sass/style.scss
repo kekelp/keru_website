@@ -1,5 +1,6 @@
 :root {
-    --bg: #ffffff;
+        color-scheme: light;
+    --bg: #fefcff;
     --fg: #1a1a1a;
     --muted: #6b7280;
     --border: #e2e8f0;
@@ -8,6 +9,7 @@
 }
 
 @mixin dark {
+    color-scheme: dark;
     --bg: #2d2b2e;
     --fg: #e6edf3;
     --muted: #8b98a5;
@@ -144,6 +146,10 @@ pre {
     border-radius: 6px;
     white-space: pre-wrap;
     overflow-wrap: break-word;
+    // The highlighter inlines `color-scheme: light dark` on <pre>, which would
+    // make light-dark() follow the OS instead of our theme toggle. Override it
+    // so the code block inherits the themed color-scheme from :root.
+    color-scheme: inherit !important;
 }
 
 pre code {

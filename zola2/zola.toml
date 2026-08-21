@@ -4,6 +4,7 @@ compile_sass = true
 build_search_index = false
 
 [markdown.highlighting]
-theme = "catppuccin-mocha"
+light_theme = "github-light"
+dark_theme = "github-dark"
 
 [extra]

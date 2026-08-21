@@ -3,9 +3,9 @@ title = "Looking for the Perfect GUI Library Interface"
 date = 2026-08-21
 +++
 
-This is a blog post about the main library interface in Keru, the GUI library that I'm writing. It will show how the code for writing GUIs with Keru looks, and explain some of the goals and the implementation constraints that determine the shape of the interface. 
+This is a blog post about the main library interface in Keru, the GUI library that I'm writing. It will show how the code for writing GUIs with Keru looks, and explain some of the goals and the implementation constraints that determine its shape. 
 
-It might seem shallow to focus on the syntax, but in practice, the library interface is a big part of what determines whether a library is easy to use and to learn, whether it's flexible enough to be used in different kinds of projects, whether it's smooth or painful to integrate it into a bigger program, and so on.
+It might seem shallow to focus on the syntax, but in practice it's a big part of what determines whether a library is easy to use and to learn, whether it's flexible enough to be used in different kinds of projects, whether it's smooth or painful to integrate it into a bigger program, and so on.
 
 An important thing to remember is that while UI can be one of the most important parts of a program from the end user's point of view, the writer of the program usually has plenty of other things to worry about. If a GUI library is trying to help with the hard problems, and not just with the easy ones, it should be a relatively unobtrusive layer that can be easily laid on top of an already complicated program. The GUI is there so that the user accesses a program that can hopefully do something useful.
 
@@ -47,7 +47,7 @@ fn update_ui(state: &mut State, ui: &mut Ui) {
 
 fn main() {
     let state = State { count: 0 };
-    // Use a wrapper that sets up a winit/wgpu loop and runs our `update_ui` on every update.
+    // Use a wrapper that sets up a winit/wgpu loop and runs our `update_ui()` on every update.
     // This is just for examples!
     // Keru is meant to be used as part of a user-controlled winit/wgpu loop.
     // Setting up a winit/wgpu loop is less than 100 lines of boilerplate.
@@ -57,14 +57,14 @@ fn main() {
 
 Looking at the syntax, you might be reminded of "immediate-mode" GUI. However, this is not an immediate-mode library, at least not in the sense in which most people use the term. The `Ui` struct retains the node tree and the whole state of the GUI across frames.
 
-When the `update_ui` function runs, it redeclares the desired state of the whole GUI. While this happens, the `Ui` updates the retained state to match the declared one, and schedules relayouts or repaints as needed.
+When the `update_ui()` function runs, it redeclares the desired state of the whole GUI. While this happens, the `Ui` updates the retained state to match the declared one, and schedules relayouts or repaints as needed.
 
 
 Back to the syntax:
 
 ## Node Keys
 
-The first line in `update_ui` is a tiny proc macro that defines a unique compile-time ID for a GUI node.
+The first line in `update_ui()` is a tiny proc macro that defines a unique compile-time ID for a GUI node.
 
 ```rust
 #[node_key] const INCREASE: NodeKey;
@@ -74,7 +74,7 @@ Internally, the `#[node_key]` macro just rolls a random `u64` and uses it to fil
 
 Rust proc macros get a lot of hate, but they work great here. In some other libraries, users have to create IDs themselves by manually providing unique strings.
 
-Note that this doesn't mean that ALL nodes need an explicit key: Keru can also generate implicit keys from source code location, position in the runtime GUI tree, and more. But since it's so convenient to create explicit ones, it leans on them quite a bit as a general-purpose way to refer to GUI nodes from anywhere in the code.
+Note that this doesn't mean that *all* nodes need an explicit key: Keru can also generate implicit keys from source code location, position in the runtime GUI tree, and more. But since it's so convenient to create explicit ones, it leans on them quite a bit as a general-purpose way to refer to GUI nodes from anywhere in the code.
 
 ## Nodes
 
@@ -97,14 +97,13 @@ all GUIs are built by `add()`ing and `nest()`ing different kinds of `Node`s.
 ## The Tree
 
 ```rust
-// Place the nodes into the tree and define the layout
 ui.add(V_STACK).nest(|| {
     ui.add(increase_button);
     ui.add(LABEL.text(&state.count.to_string()));
 });
 ```
 
-The `Ui` is the struct that holds the full retained state of the whole GUI. When `update_ui` runs, we call `add()` and `nest()` to redeclare what nodes should be part of the tree, and the parent-child relationships between them.
+The `Ui` is the struct that holds the full retained state of the whole GUI. When `update_ui()` runs, we call `add()` and `nest()` to redeclare what nodes should be part of the tree, and the parent-child relationships between them.
 
 Since `increase_button` is a plain value struct, we choose to keep it separate from this part of the code, so that the tree structure remains understandable at a glance. Of course, nothing is stopping us from inlining the `V_STACK` and the `LABEL`.
 
@@ -135,7 +134,6 @@ All in all, the `||` closure doesn't look like a bad solution if we look at the 
 ## Events
 
 ```rust
-// Change the state in response to events
 if ui.is_clicked(INCREASE) {
     state.count += 1;
 }
