@@ -21,8 +21,6 @@ In this layout, the multi-line paragraph fits to the width of the single-line la
 The first thing I did was trying to implement the `clay` algorithm in Keru, and despite sabotaging myself with a lot of AI assistance, I think I understood its algorithm well enough to conclude that it can't possibly solve this case.
 
 I also did some experiments with CSS layout, and couldn't get it to solve it either. Because of how complicated CSS is, it's still entirely possible that a way to solve exists, and I just didn't find the correct magic word to make it happen. What I can say with certainty is that writing it in <a href="/css-giraffe/" target="_blank" rel="noopener">the obvious way</a> doesn't work: the giraffe stays at zero width.
-
-![Giraffe](giraffe_css.png)
  
 
 To be clear, I don't think this is necessarily a huge problem: especially in the case of `clay` there's nothing wrong with sticking to a simpler and faster algorithm if it works for the intended application. There's plenty of GUI programs that work great without any advanced layouts of this kind and don't run into any of these issues.
@@ -35,7 +33,7 @@ To understand what was going on, I tried drawing the giraffe on paper and asking
 
 <figure>
     <img src="giraffe_paper.png" alt="Working out the giraffe's dependency chain on paper.">
-    <figcaption>Working out the giraffe's dependency chain on paper.</figcaption>
+    <figcaption>Again, you can ignore the dog.</figcaption>
 </figure>
 
 It turns out that in this case there's a pretty straightforward dependency chain:
@@ -48,7 +46,7 @@ It turns out that in this case there's a pretty straightforward dependency chain
 
 ## The Algorithm
 
-It's not that hard to write an algorithm that works in this way.
+It's not that hard to write an algorithm that goes through this chain in order.
 
 The goal is to build a graph of dependencies, then solve it. In the simplest version of the algorithm, every element in the graph is a `(NodeID, Axis)` pair, and each dependency is an edge in the graph: `{ dependent: (NodeID, Axis), depends_on: (NodeID, Axis) }`.
 
@@ -184,7 +182,10 @@ If you clicked through to the blog post with the benchmarks, you might have noti
 Still, while being on par with Taffy and Yoga is "okay", it's true we should probably have higher standards for a new algorithm not encumbered by strict compliance with the CSS spec and written from scratch in the age of data-oriented programming. In the future, I'll try to see what an optimized version of the Keru algorithm can do.
 
 
-
 ## Thanks For Reading
 
-If you are interested, check out [Keru's github page](https://github.com/kekelp/keru/).
+That's all that I have to say about layout for now.
+
+This layout system is one of the most interesting things I've worked on, but it's a fairly small and recent addition to Keru, which aims to be a full featured and usable GUI library. 
+
+If you are interested, check out [Keru's Github page](https://github.com/kekelp/keru/), or the other posts in this blog.

@@ -180,8 +180,10 @@ I won't go into any more detail here, partly because `Component`s are still expe
 
 ## Thanks for Reading
 
+As you can see, a lot of thought went into the user-facing inteface and syntax. However, it doesn't stop there: there's a real working library underneath.
+
 If you would like to learn more and see what Keru looks like beyond the basic "Hello world" code, you can check out [Keru's github page](https://github.com/kekelp/keru/) and explore the examples, which show advanced layout and grids, animations, drag and drop, canvas drawing, components with local state, optional imperative tree manipulation, integration with custom wgpu rendering, etc.
 
-Keru is a pure Rust library and uses `winit` and `wgpu`, so trying it out should be relatively easy on most systems.
+Keru is a pure Rust library and uses `winit` and `wgpu` for cross-platform support, so trying it out should be relatively easy on most systems.
 
-If you are interested in a more technical discussion, the next blog post will be about Keru's unique layout algorithm, which is completely experimental and different from most GUI libraries.
+If you are interested in a more technical discussion about the library internals, check out [this other blog post about Keru's unique layout algorithm](@/blog/layout/index.md), which is completely experimental and different from what most GUI systems tend to do.

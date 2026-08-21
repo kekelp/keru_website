@@ -157,3 +157,32 @@ pre code {
     background: none;
     padding: 0;
 }
+
+// Side-by-side source / live-render view (giraffe page).
+.split {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: stretch;
+    margin: 1.5rem 0;
+}
+
+.split .pane {
+    flex: 1 1 300px;
+    min-width: 0;
+}
+
+.split .code pre {
+    margin: 0;
+    height: 100%;
+    font-size: 0.85em;
+}
+
+.split .render {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1.5rem;
+}

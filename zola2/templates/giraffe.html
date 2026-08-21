@@ -1,69 +1,20 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{ page.title }}</title>
-{% set src = load_data(path="giraffe_src.html", format="plain") %}
-<style>
-  :root { color-scheme: dark; }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    font-family: system-ui, sans-serif;
-    background: #0f1417;
-    color: #e6edf3;
-  }
-  header {
-    padding: 1rem 1.25rem;
-    border-bottom: 1px solid #232b31;
-  }
-  header h1 { margin: 0; font-size: 1.1rem; }
-  header p { margin: 0.25rem 0 0; color: #8b98a5; font-size: 0.9rem; }
-  .split {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: stretch;
-    min-height: calc(100vh - 66px);
-  }
-  .pane { flex: 1 1 380px; min-width: 0; }
-  .code {
-    border-right: 1px solid #232b31;
-    overflow: auto;
-  }
-  .code pre {
-    margin: 0;
-    padding: 1.25rem;
-    font-size: 0.85rem;
-    line-height: 1.5;
-    min-height: 100%;
-    white-space: pre-wrap;
-    overflow-wrap: break-word;
-    color-scheme: inherit !important; /* follow this page's color-scheme, not the OS */
-  }
-  .render {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 1.5rem;
-  }
-</style>
-</head>
-<body>
-  <header>
-    <h1>{{ page.title }}</h1>
-    <p>The giraffe collapses to zero width.</p>
-  </header>
+{% extends "base.html" %}
 
-  <div class="split">
+{% block title %}{{ page.title }} — {{ config.title | default(value="Blog") }}{% endblock %}
+
+{% block content %}
+{% set src = load_data(path="giraffe_src.html", format="plain") %}
+<h1>{{ page.title }}</h1>
+<p>Source on the left, live render on the right. The giraffe collapses to zero width.</p>
+
+<div class="split">
     <div class="pane code">
-      {{ ("```html
+        {{ ("```html
 " ~ src ~ "
 ```") | markdown | safe }}
     </div>
     <div class="pane render">
-      {{ src | safe }}
+        {{ src | safe }}
     </div>
-  </div>
-</body>
-</html>
+</div>
+{% endblock %}
