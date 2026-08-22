@@ -64,7 +64,7 @@ At the same time, 10k is already way above what a 2D GUI should realistically ha
 
 
 
-## Further optimization?
+## Further Optimization?
 
 Still, some applications might have a legitimate need for ten thousand unvirtualized nodes, and four milliseconds isn't nothing.
 
@@ -89,7 +89,7 @@ The more general point here is that it's always more flexible and more natural t
 
 Another possible performance improvement could be to represent `Node`s as a list of changes over a default value rather than a full struct with values for every field. But that wouldn't be quite as natural, and in current day Rust there's no ergonomic way to use many variable length objects without making a lot of allocations on the global heap (although these would be the sort of short-lived ones that allocators are actually fairly good at dealing with).
 
-## Everything else
+## The Cost of Everything Else
 
 Let's not forget that about all the other work that the GUI has to do every time something does happen:
 
@@ -99,5 +99,9 @@ Let's not forget that about all the other work that the GUI has to do every time
 - rebuild the render data,
 - and finally rerender the pixels on the screen.
 
-This all scales with N as well, and it's all internal, so it can be optimized or pessimized regardless of the shape of the user-facing API. If all of this work is done inefficiently, the library will be slow regardless of any advanced reactive architecture. If it's done efficiently, it will probably be fine either way. At the end of the day, it's just unlikely that rerunning the declaration code just will be what makes the difference between a snappy and efficient library and a slow or wasteful one.
+This all scales with the number of nodes as well, and it's all internal, so it can be optimized or pessimized regardless of the shape of the user-facing API. If all this work is done inefficiently, the library will be slow regardless of any advanced reactive architecture. If it's done efficiently, it will probably be fine either way. At the end of the day, it's just unlikely that rerunning the declaration code will be what makes the difference between a snappy and efficient library and a slow or wasteful one.
+
+## Thanks for Reading
+
+If you are interested, check out [Keru's github page](https://github.com/kekelp/keru/).
 
