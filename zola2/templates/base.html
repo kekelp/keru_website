@@ -20,6 +20,7 @@
             id="theme-toggle"
             class="theme-toggle"
             aria-label="Toggle dark mode"
+            aria-pressed="false"
         >
             <span id="theme-label"></span> ◐
         </button>
@@ -33,6 +34,7 @@
         var DARK = 'dark', LIGHT = 'light';
         var root = document.documentElement;
         var label = document.getElementById('theme-label');
+        var toggle = document.getElementById('theme-toggle');
 
         function isDark() {
             var t = root.getAttribute('data-theme');
@@ -45,11 +47,13 @@
         function apply(dark) {
             root.setAttribute('data-theme', dark ? DARK : LIGHT);
             label.textContent = labelFor(dark);
+            toggle.setAttribute('aria-pressed', dark ? 'true' : 'false');
             try { localStorage.setItem('theme', dark ? DARK : LIGHT); } catch (e) {}
         }
 
         label.textContent = labelFor(isDark());
-        document.getElementById('theme-toggle').addEventListener('click', function () {
+        toggle.setAttribute('aria-pressed', isDark() ? 'true' : 'false');
+        toggle.addEventListener('click', function () {
             apply(!isDark());
         });
     </script>

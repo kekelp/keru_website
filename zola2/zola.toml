@@ -1,5 +1,6 @@
 base_url = "https://example.com"
-title = "Keru and Friends"
+title = "Keru"
+description = "A site for the Keru GUI library."
 compile_sass = true
 build_search_index = false
 
