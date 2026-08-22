@@ -5,16 +5,16 @@ date = 2026-08-22
 
 In the previous post about Keru's interface, I stated that a simple and minimal interface is probably the most important goal for a GUI library, and that this goal pretty much forces the library to adopt a model at least superficially similar to "immediate mode", where we often have to rerun all or most of the declaration code.
 
-My impression is that especially in the Rust community, immediate-mode GUI is not very popular, so I immediately presented some arguments to defend this choice. Without going into the details again, here's a summary of the arguments: 
+My impression is that especially in the Rust community, immediate-mode GUI is not very popular, so I immediately presented some arguments to defend this choice. Without going into the details again, here's a summary of the defensive arguments: 
 
 
 - It's not actually immediate mode: there's a `Ui` struct that retains the whole state of the GUI at all times. The declaration code just updates this retained state.
 
 - The declaration code is not rerun "on every frame", but only when a meaningful event happens. If a click lands on a node not set to listen to it, or if the user is just moving the mouse around or scrolling, the Ui knows that nothing needs to be rerun.
 
-- There are many libraries that rerun the declaration code quite often without attracting the same sort of skepticism. This may be a sign that people are opposed about specific flaws of some naive immediate mode libraries rather than to the idea of rerunning just the redeclaration code.
+- There are many libraries that rerun the declaration code quite often without attracting the same sort of skepticism, such as Iced. This may be a sign that some people are opposed about specific flaws of some naive immediate mode libraries rather than to the whole idea of rerunning declarative code.
 
-- When people argue for avoiding even the price of redeclaration, they usually propose a "reactive" system, but these are usually very complicated with plenty of disadvantages beyond just the interface. Especially in non-web libraries, it seems that even many of the biggest fans of reactivity implement it as an optimization over a redeclare-everything model.
+- When people argue for avoiding even the price of redeclaration, they usually propose a "reactive" system, but these are usually very complicated with plenty of disadvantages beyond just the interface. Especially in non-web libraries, it seems that it's often implemented as a partial optimization layer over a redeclare-everything model.
 
 
 These are all good arguments, but as always, we have to look at the other side. If the cost of rerunning the declaration code on every event was truly paralyzing, we'd have to just get over it and use some sort of reactive system anyway.
@@ -103,5 +103,5 @@ This all scales with the number of nodes as well, and it's all internal, so it c
 
 ## Thanks for Reading
 
-If you are interested, check out [Keru's github page](https://github.com/kekelp/keru/).
+If you are interested, check out [Keru's github page](https://github.com/kekelp/keru/), or the [other posts on this blog](@/blog/_index.md) .
 
