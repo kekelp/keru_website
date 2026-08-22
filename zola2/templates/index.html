@@ -2,32 +2,39 @@
 
 {% block content %}
 <section class="hero">
-    <h3>Keru: experimental GUI library for Rust</h3>
+    <p><b>Keru</b> is an experimental GUI library for Rust.</p>
 </section>
 
 {% set videos = [
     "animated_shapes",
-    "grid",
     "interactive_plot",
-    "airbnb_month_slider",
-    "custom_rendering",
-    "animations",
+    "grid",
     "aesthetics_scifi",
     "aesthetics_water",
+    "airbnb_month_slider",
+    "animations",
+    "custom_rendering",
 ] %}
 
 <div class="video-wall">
     {% for name in videos %}
-    <video
-        class="video-tile"
-        src="{{ get_url(path='videos/' ~ name ~ '.mp4') }}"
-        loop
-        muted
-        playsinline
-        preload="metadata"
-    ></video>
+    <figure class="video-cell">
+        <video
+            class="video-tile"
+            src="{{ get_url(path='videos/' ~ name ~ '.mp4') }}"
+            loop
+            muted
+            playsinline
+            preload="metadata"
+        ></video>
+        <figcaption>
+            <a href="https://github.com/kekelp/keru/blob/master/examples/{{ name }}.rs">{{ name }}.rs</a>
+        </figcaption>
+    </figure>
     {% endfor %}
-    <div class="video-tile video-tile--empty" aria-hidden="true"></div>
+    <figure class="video-cell">
+        <div class="video-tile video-tile--empty" aria-hidden="true"></div>
+    </figure>
 </div>
 
 <script>
