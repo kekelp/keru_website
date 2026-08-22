@@ -14,8 +14,8 @@
     --fg: #e6edf3;
     --muted: #8b98a5;
     --border: #232b31;
-    --accent: #4ab4e9;
-    --accent-hover: #8ecce9;
+    --accent: #5caeff;
+    --accent-hover: #8ec5e9;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -36,20 +36,28 @@ body::before,
 body::after {
     content: "";
     position: fixed;
-    top: 0;
-    bottom: 0;
+    top: 1rem;
+    bottom: 1rem;
     width: 1.25rem;
     background-color: var(--accent);
-    -webkit-mask: url("wave-vertical.svg") repeat-y center / 100% auto;
-            mask: url("wave-vertical.svg") repeat-y center / 100% auto;
-    opacity: 0.55;
+    // Three mask layers unioned together: the tiling wave, plus a solid bar at
+    // the top and bottom that caps off each end of the rail. (A border wouldn't
+    // work here — the mask clips borders too.)
+    $cap: linear-gradient(#000, #000) no-repeat;
+    -webkit-mask: url("wave-vertical.svg") repeat-y center / 100% auto,
+                  $cap top    / 100% 7px,
+                  $cap bottom / 100% 7px;
+            mask: url("wave-vertical.svg") repeat-y center / 100% auto,
+                  $cap top    / 100% 7px,
+                  $cap bottom / 100% 7px;
+    opacity: 0.7;
     pointer-events: none;
     z-index: -1;
     transition: background-color 0.3s ease;
 }
 
-body::before { left: 1.5rem; transform: scaleX(-1); }
-body::after  { right: 1.5rem; }
+body::before { left: 1rem; transform: scaleX(-1); }
+body::after  { right: 1rem; }
 
 // Only reveal the rails once the viewport is wide enough that they sit clear of
 // the ~40rem reading column.
