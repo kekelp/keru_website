@@ -3,7 +3,7 @@
 {% block title %}{{ section.title }} — {{ config.title | default(value="Blog") }}{% endblock %}
 
 {% block content %}
-<h1>{{ section.title }}</h1>
+<h2>{{ section.title }}</h2>
 <ul class="posts">
     {% for page in section.pages %}
     <li>

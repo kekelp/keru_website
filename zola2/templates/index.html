@@ -38,8 +38,6 @@
 </div>
 
 <script>
-    // Tiles sit still (showing their poster frame) until hovered: then they
-    // reveal the native controls and start playing, and pause again on leave.
     document.querySelectorAll('.video-tile').forEach(function (v) {
         if (v.tagName !== 'VIDEO') return;
         v.addEventListener('mouseenter', function () {

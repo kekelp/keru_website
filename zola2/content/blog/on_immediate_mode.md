@@ -3,9 +3,9 @@ title = "On \"Immediate Mode\""
 date = 2026-08-22
 +++
 
-In the previous post about Keru's interface, I stated that a simple and minimal interface is probably the most important goal for a GUI library, and that this goal pretty much forces the library to adopt a model at least superficially similar to "immediate mode", where we often have to rerun all or most of the declaration code.
+In [the previous post about Keru's interface](@/blog/interface.md), I argued that a simple and minimal interface is probably the most important goal for a GUI library, and that this goal pretty much forces us to adopt a model at least superficially similar to "immediate mode", where we often have to rerun all or most of the user's GUI declaration code.
 
-My impression is that especially in the Rust community, immediate-mode GUI is not very popular, so I immediately presented some arguments to defend this choice. Without going into the details again, here's a summary of the defensive arguments: 
+My impression is that especially in the Rust community, immediate-mode GUI is not very popular, so I tried felt like I had defend this choice. Without going into the details again, here's a summary of the defensive arguments: 
 
 
 - It's not actually immediate mode: there's a `Ui` struct that retains the whole state of the GUI at all times. The declaration code just updates this retained state.
@@ -46,7 +46,7 @@ fn update_ui(state: &mut State, ui: &mut Ui) {
 
 What is this code actually doing, and how expensive is it? 
 
-Many of the people who assume that code like that is expensive probably have something like React in mind, where the redeclaration code creates a brand new tree from scratch to represent the desired state of the GUI, and then compares it to the retained one. Both trees probably also happened to be sprawling pointer jungles on the Javascript garbage-collected heap.
+Many of the people who assume that code like that is expensive probably have something like React in mind, where the redeclaration code would create a brand new tree from scratch to represent the desired state of the GUI, and then compared it to the retained one. Both trees probably also happened to be sprawling pointer jungles on the Javascript garbage-collected heap.
 
 There's definitely more reasonable ways to go about this. In Keru, whenever we `add()` a node, the function reaches into the node storage, and it either finds the old version of the node or creates it from scratch. If it finds an old node, it marks it as "fresh", updates its parameters, and updates its parent link to put it in the desired position within the tree.
 
