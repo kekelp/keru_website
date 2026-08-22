@@ -1,7 +1,7 @@
 :root {
         color-scheme: light;
     --bg: #fefcff;
-    --fg: #1a1a1a;
+    --fg: #38383a;
     --muted: #6b7280;
     --border: #e2e8f0;
     --accent: #0f9fe7;
@@ -11,7 +11,7 @@
 @mixin dark {
     color-scheme: dark;
     --bg: #2d2b2e;
-    --fg: #e6edf3;
+    --fg: #c4ccd4;
     --muted: #8b98a5;
     --border: #232b31;
     --accent: #5caeff;
@@ -246,7 +246,15 @@ pre code {
 // 3x3 wall of looping videos. Breaks out of the 40rem reading column to a
 // roomier width, staying clear of the decorative wave rails in the gutters.
 .video-wall {
-    width: min(48rem, 92vw);
+    // The tiles are fixed 4:3, so to fill spare vertical space *without cropping*
+    // we grow the wall's WIDTH from the available height: pick a row height that
+    // divides the leftover viewport (min 8rem so it never gets tiny), then a
+    // 4:3 tile that tall is 4/3 as wide, and three of those plus gaps set the
+    // width. Capped at 75rem / 96vw so it doesn't run away on very tall screens.
+    // Leave 3rem of clearance each side so the wall never overlaps the
+    // decorative wave rails (which end ~2.25rem in from each edge).
+    --row-h: max(8rem, calc((100vh - 15rem) / 3));
+    width: min(75rem, calc(100vw - 6rem), calc(4 * var(--row-h) + 1.5rem));
     position: relative;
     left: 50%;
     transform: translateX(-50%);
@@ -261,6 +269,7 @@ pre code {
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
+    min-height: 0;
 }
 
 .video-cell figcaption {
