@@ -1,9 +1,9 @@
 +++
 title = "Looking for the Perfect GUI Library Interface"
-date = 2026-08-21
+date = 2026-08-19
 +++
 
-This is a blog post about the main library interface in Keru, my experimental GUI library for Rust. It will show how the code for writing GUIs with Keru looks, explain some of the goals and the implementation constraints that ended up determining its shape, and show some of the ways in which the syntax ends up influencing the internal architecture.
+This is a blog post about the main library interface in Keru, my experimental GUI library for Rust. It will show how the code for writing GUIs with Keru looks like, explain some of the goals and the implementation constraints that ended up determining its shape, and show some of the ways in which the syntax ends up influencing the internal architecture.
 
 It might seem shallow to focus on the syntax, but in practice it's a big part of what determines whether a library is easy to use and to learn, whether it's flexible enough to be used in different kinds of projects, whether it's smooth or painful to integrate it into a bigger program, and so on.
 
@@ -75,6 +75,16 @@ Internally, the `#[node_key]` macro just rolls a random `u64` and uses it to fil
 Rust proc macros get a lot of hate, but they work great here. In some other libraries, users have to create IDs themselves by manually providing unique strings.
 
 Note that this doesn't mean that *all* nodes need an explicit key: Keru can also generate implicit keys from various sources such as source code location or position in the runtime GUI tree, so that every node gets a stable identity. But since it's so convenient to create explicit keys, it leans on them quite a bit as a general-purpose way to refer to GUI nodes from anywhere in the code.
+
+The macro creates static compile-time keys that are globally unique for the whole program. From these "base" keys, we can create dynamic keys at runtime with the `NodeKey::sibling()` method and any hashable value:
+
+```rust
+for i in 0..100 {
+    let dynamic_key = INCREASE.sibling(i);
+}
+```
+
+For more advanced uses, we can also scope them so that they are only unique within a reusable component, using the `Ui::key_scope()` method or the experimental `Component` trait.
 
 ## Nodes
 
@@ -148,9 +158,9 @@ However, Keru's solution is not as inflexible as in most immediate-mode librarie
 
 This code can be run from anywhere in the program. We can move it into another function entirely to separate the effects from the presentation, or move it just a couple lines to avoid mucking up the nested `add()` calls that define the layout. And of course we can choose to not separate it at all and write it right below the `add()`.
 
-Dedicated immediate-mode fans can even fall back to the familiar `if ui.add(BUTTON).is_clicked(ui)` form, as mentioned above, if they can stomach having to pass in the `ui`.
+Dedicated immediate-mode fans can even fall back to the familiar `if ui.add(BUTTON).is_clicked(ui)` form, as mentioned above, if they can stomach having to pass in the `ui` reference.
 
-## Consequences on the architecture
+## Consequences on architecture
 
 Whether a library embraces or denies them, callbacks are probably the most significant example of how the interface ends up deeply influencing the internal architecture. When using callbacks, all the extra complexity in managing the state usually ends up leaking into the interface, either in the form of the user having to manually clone their state handles, or in other ways.
 
@@ -179,7 +189,7 @@ I won't go into any more detail here, partly because `Component`s are still expe
 
 ## Thanks for Reading
 
-As you can see, a lot of thought went into the user-facing inteface and syntax. However, it doesn't stop there: there's a real working library underneath.
+As you can see, a lot of thought went into the user-facing interface and syntax. However, it doesn't stop there: there's a real working library under it.
 
 If you would like to learn more and see what Keru looks like beyond the basic "Hello world" code, you can check out [Keru's github page](https://github.com/kekelp/keru/) and explore the examples, which show advanced layout and grids, animations, drag and drop, canvas drawing, components with local state, optional imperative tree manipulation, integration with custom wgpu rendering, etc.
 
