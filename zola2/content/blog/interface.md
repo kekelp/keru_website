@@ -3,7 +3,7 @@ title = "Looking for the Perfect GUI Library Interface"
 date = 2026-08-19
 +++
 
-This is a blog post about the main library interface in Keru, my experimental GUI library for Rust. It will show how the code for writing GUIs with Keru looks like, explain some of the goals and the implementation constraints that ended up determining its shape, and show some of the ways in which the syntax ends up influencing the internal architecture.
+This is a blog post about the interface in Keru, my experimental GUI library for Rust. It will show how the code for writing GUIs with Keru looks like, explain some of the goals and the implementation constraints that ended up determining its shape, and show some of the ways in which the syntax ends up influencing the internal architecture.
 
 It might seem shallow to focus on the syntax, but in practice it's a big part of what determines whether a library is easy to use and to learn, whether it's flexible enough to be used in different kinds of projects, whether it's smooth or painful to integrate it into a bigger program, and so on.
 
@@ -13,7 +13,7 @@ For this reason, it's very important that a GUI library imposes as few restricti
 
 This argument is a bit abstract, but it's why the interface tries to be as simple and minimal as possible.
 
-This is [Keru's `minimal` example:](https://github.com/kekelp/keru/blob/master/examples/minimal.rs)
+This is [Keru's `minimal.rs` example:](https://github.com/kekelp/keru/blob/master/examples/minimal.rs)
 
 ```rust
 use keru::*;
@@ -47,7 +47,8 @@ fn update_ui(state: &mut State, ui: &mut Ui) {
 
 fn main() {
     let state = State { count: 0 };
-    // Use a wrapper that sets up a winit/wgpu loop and runs our `update_ui()` on every update.
+    // Use a wrapper that sets up a winit/wgpu loop,
+    // and runs our `update_ui()` on every update.
     // This is just for examples!
     // Keru is meant to be used as part of a user-controlled winit/wgpu loop.
     // Setting up a winit/wgpu loop is less than 100 lines of boilerplate.
@@ -112,7 +113,7 @@ ui.add(V_STACK).nest(|| {
 });
 ```
 
-The `Ui` is the struct that holds the full retained state of the whole GUI. When `update_ui()` runs, we call `add()` and `nest()` to redeclare what nodes should be part of the tree, and the parent-child relationships between them.
+The `Ui` is the struct that holds the full retained state of the whole GUI. When `update_ui()` runs, we call `add()` and `nest()` to redeclare what nodes should be part of the tree, and define the parent-child relationships between them.
 
 Since `increase_button` is a plain value struct, we choose to keep it separate from this part of the code, so that the tree structure remains understandable at a glance. Of course, nothing is stopping us from inlining the `V_STACK` and the `LABEL`.
 
@@ -128,17 +129,18 @@ ui.add(V_STACK).nest(|| {
 return result;
 ```
 
-For all the compiler knows, `nest()` might decide to return without doing anything with our closure, so it can't tell if the code for our nested elements is going to be executed at all. So we'll get an error about `result` being potentially uninitialized. We can work around this by returning the value from the closure or making result and `Option`, but it sure would be nicer if it worked out of the box.
+For all the compiler knows, `nest()` might decide to return without doing anything with our closure, so it can't tell if the code for our nested elements is going to be executed at all. So we'll get an error about `result` being potentially uninitialized. We can work around this by returning the value from the closure or making result and `Option` and unwrapping it, but it sure would be nicer if it worked out of the box.
 
 For more complicated reasons, it also gets in the way when trying to implement the familiar immediate-mode pattern `if ui.add(BUTTON).is_clicked() { ... }`.
 We can't have nice syntax for both `nest` and `is_clicked()` at the same time. In Keru, we have to awkwardly pass the `ui` reference back into it: `if ui.add(BUTTON).is_clicked(ui) { ... }`
 
 All we're trying to do with the closure is to call a `push_parent()` function before the inner code, and `pop_parent()` after. Closures can do this, but it would be much better to have a dedicated language construct to do this sort of thing, like Python's `with` or C#'s `using`.
 
-As is often the case in life, we can derive comfort by looking at the misfortunes of others. Few languages provide good tools for this, so library authors use all sorts of creative workarounds. Some Zig libraries ask the user to open a block and call `defer node.close()` manually after adding a node. C libraries like `clay` use complicated macro tricks. The C GUI library used for the RAD debugger project uses an especially funny solution: a macro that wraps the code in a `for` statement, sticking the `push_parent` in the loop initialization and the `pop_parent()` in the increment clause. Calling `break` inside the body breaks it completely.
-Even in the languages that do have a dedicated construct, like Python and C#, it's interesting to note that it was added to help with resource deallocation, not for something as lowbrow as programming GUIs.
+As is often the case in life, we can derive comfort by looking at the misfortunes of others. Few languages provide good tools for this, so library authors use all sorts of creative workarounds. Some Zig libraries ask the user to open a block and call `defer node.close()` manually after adding a node. C libraries like `clay` use complicated macro tricks. The C GUI code used for the RAD debugger project uses an especially funny solution: a macro that wraps the code in a `for` statement, sticking the `push_parent` in the loop initialization and the `pop_parent()` in the increment clause. Calling `break` inside the body breaks it completely.
 
-All in all, the `||` closure doesn't look like a bad solution if we look at the bigger picture, and there's some value in using a "regular" language construct like a closure rather than a more ad-hoc one or a macro.
+Even in the languages that do have a dedicated construct, like Python and C#, it's interesting to note that it was added for resource deallocation, not for something as lowbrow as programming GUIs.
+
+All in all, the `||` closure is not a bad solution, and there's some value in using a "regular" language construct like a closure rather than a more ad-hoc one or a macro.
 
 ## Events
 
@@ -160,7 +162,7 @@ This code can be run from anywhere in the program. We can move it into another f
 
 Dedicated immediate-mode fans can even fall back to the familiar `if ui.add(BUTTON).is_clicked(ui)` form, as mentioned above, if they can stomach having to pass in the `ui` reference.
 
-## Consequences on architecture
+## Consequences on Architecture
 
 Whether a library embraces or denies them, callbacks are probably the most significant example of how the interface ends up deeply influencing the internal architecture. When using callbacks, all the extra complexity in managing the state usually ends up leaking into the interface, either in the form of the user having to manually clone their state handles, or in other ways.
 

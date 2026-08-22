@@ -3,9 +3,6 @@ title = "On \"Immediate Mode\""
 date = 2026-08-22
 +++
 
-
-# On "Immediate Mode"
-
 In the previous post about Keru's interface, I stated that a simple and minimal interface is probably the most important goal for a GUI library, and that this goal pretty much forces the library to adopt a immediate-looking model where we often have to rerun all or most of the declaration code.
 
 Especially in the Rust community, there's a feel that everyone hates everything that looks like immediate mode, so I "immediately" began presenting some defensive arguments about this choice. Without going into the details again, here's a summary of the arguments: 
@@ -42,9 +39,7 @@ fn update_ui(state: &mut State, ui: &mut Ui) {
 }
 ```
 
-## Performance 
-
-What is the redeclaration code actually doing, and how expensive is it? 
+What is this code actually doing, and how expensive is it? 
 
 Many of the people who assume that code like that is expensive probably have something like React in mind, where the redeclaration code creates a brand new tree from scratch to represent the desired state of the GUI, and then compares it to the retained one. Both trees probably also happened to be sprawling pointer jungles on the Javascript garbage-collected heap.
 
@@ -54,23 +49,30 @@ Then, the properties of the new node are immediately diffed against the old one.
 
 Finally, we have to do a quick linear scan over the node storage to clean up any lingering ones that were excluded from the new declaration.
 
-I measured this in the [`ten_thousands.rs`](https://github.com/kekelp/keru/blob/master/examples/ten_thousands.rs) example, which shows a non-virtualized list of 10k elements. On my laptop from 2021, rerunning the declaration code takes about 4 milliseconds.
+I measured this in the [`ten_thousand.rs`](https://github.com/kekelp/keru/blob/master/examples/ten_thousand.rs) example, which shows a non-virtualized list of 10k elements. On my laptop from 2021, rerunning the declaration code takes about 4 milliseconds, and we can comfortably scroll and interact with the nodes at 120hz:
 
-Most of the time is spent moving around and comparing the `Node` structs, which aren't small. In an ideal world, maybe `Node`s would be represented as a list of changes over a default value rather than a full struct with values for every field, but in current day Rust there's no ergonomic way to use many small variable length types without making a lot of small allocations on the global heap (although these would be the sort of short-lived ones that allocators are actually fairly good at dealing with).
+[ videos ]
 
-We could also change the API so that nodes aren't build as freestanding variables on the stack, and merge the `add()` function and the `Node` creation like this:
+Most of the time is spent moving around and comparing the `Node` structs, which aren't small.
 
-    ui.add_button()
-        .with_color(Color::RED)
-        .with_size(Size::Big)
-        .nest(|| { 
-            ...
-        })
+If we were willing to go back and change the interface for the sake of performance, we also could merge the `add()` function and the `Node` creation like this:
 
-In this case, the property builders could reach directly into the added node and do a much cheaper update and compare for the single field. In fact, many libraries work exactly like this. But I think that using freestanding variables for nodes is a significant ergonomic advantage, because it allows the builder code to be separated from the `nest()` calls that define the tree structure, it allows the programmer to organize them into constants or associated values, to return them from functions, etc.
+```rust
+ui.add_button()
+    .with_color(Color::RED)
+    .with_size(Size::Big)
+    .nest(|| { 
+        ...
+    })
+```
 
-The more general idea here is that we should always try to create a natural and intuitive mapping between the concepts of a library and the basic concepts of the language, when possible. Mapping a `Node` to a struct is more natural than mapping it to an abstract concept that emerges out of a specific series of function calls, and is only materialized somewhere deep inside the library outside of the user's view.
+In this case, the property builders themselves could reach directly into the node storage and compare and diff the single field, which would likely be much cheaper.
 
+But I think that using free stack variables for nodes is a significant ergonomic advantage, because it allows the builder code to be separated from the `nest()` calls that define the tree structure, it allows the programmer to organize them into constants or associated values, to return them from functions, and so on.
+
+The more general point here is that it's always more flexible and more natural to map the concepts of a library to the basic primitives of the language, when it is possible. It's much better for a `Node` to be a struct than an abstract concept that emerges out of a series of function calls, and is only materialized somewhere deep inside the library outside of the user's view.
+
+Another possible performance improvement could be to represent `Node`s as a list of changes over a default value rather than a full struct with values for every field. But that wouldn't be quite as natural, and in current day Rust there's no ergonomic way to use many variable length objects without making a lot of allocations on the global heap (although these would be the sort of short-lived ones that allocators are actually fairly good at dealing with).
 
 Anyway, my opinion is that the speed is fine. Let's not forget that about all the other work that the GUI has to do every time something does happen:
 
@@ -83,10 +85,7 @@ Anyway, my opinion is that the speed is fine. Let's not forget that about all th
 This all scales with N as well, and it's all internal, so it can be optimized or pessimized regardless of the shape of the user-facing API. If all of this work is done inefficiently, the library will be slow regardless of any advanced reactive architecture. If it's done efficiently, it will be fine either way. At the end of the day, rerunning some declaration code just won't be what makes the difference between an snappy and efficient library and a slow or wasteful one.
 
 
-For everything else, my impression is that some basic heap discipline and a really basic level of data-oriented programming should be enough to do a deal with any realistic GUI. Here is Keru's [`ten_thousands.rs`](https://github.com/kekelp/keru/blob/master/examples/ten_thousands.rs) example, showing a non-virtualized list of 10k elements. 
-Running this on my laptop from 2021, I can scroll and interact with the list at the full 165 Hz of my display without issues.
-
-[ example video ]
+For everything else, my impression is that some basic heap discipline and a really basic level of data-oriented programming should be enough to do a deal with any realistic GUI. 
 
 There's a ton of space for more optimizations in Keru, especially in the unique layout algorithm or to improve general cache efficiency, but I don't want to get to them while the code is still in flux. With a bit of optimization and maybe a newer CPU, we can definitely go much higher than 10k.
 
