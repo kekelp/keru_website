@@ -1,7 +1,50 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>Welcome</h1>
-<p>This is the front page. More to come.</p>
-<p><a href="{{ get_url(path='/blog') }}">Read the blog →</a></p>
+<section class="hero">
+    <h1>Keru</h1>
+    <p>A GUI library for Rust — immediate-mode ergonomics, retained-mode performance.</p>
+    <p><a href="{{ get_url(path='/blog') }}">Read the blog →</a></p>
+</section>
+
+{% set videos = [
+    "animated_shapes",
+    "grid",
+    "interactive_plot",
+    "airbnb_month_slider",
+    "custom_rendering",
+    "animations",
+    "aesthetics_scifi",
+    "aesthetics_water",
+] %}
+
+<div class="video-wall">
+    {% for name in videos %}
+    <video
+        class="video-tile"
+        src="{{ get_url(path='videos/' ~ name ~ '.mp4') }}"
+        loop
+        muted
+        playsinline
+        preload="metadata"
+    ></video>
+    {% endfor %}
+    <div class="video-tile video-tile--empty" aria-hidden="true"></div>
+</div>
+
+<script>
+    // Tiles sit still (showing their poster frame) until hovered: then they
+    // reveal the native controls and start playing, and pause again on leave.
+    document.querySelectorAll('.video-tile').forEach(function (v) {
+        if (v.tagName !== 'VIDEO') return;
+        v.addEventListener('mouseenter', function () {
+            v.setAttribute('controls', '');
+            v.play();
+        });
+        v.addEventListener('mouseleave', function () {
+            v.pause();
+            v.removeAttribute('controls');
+        });
+    });
+</script>
 {% endblock %}

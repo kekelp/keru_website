@@ -216,6 +216,66 @@ pre code {
     padding: 0;
 }
 
+// Front page hero — the text area above the video wall.
+.hero {
+    text-align: center;
+    margin: 2rem 0 2.5rem;
+}
+
+.hero h1 {
+    color: var(--accent);
+    font-size: 2.5rem;
+    margin: 0 0 0.5rem;
+}
+
+.hero p {
+    color: var(--muted);
+    margin: 0.25rem 0;
+}
+
+// 3x3 wall of looping videos. Breaks out of the 40rem reading column to a
+// roomier width, staying clear of the decorative wave rails in the gutters.
+.video-wall {
+    width: min(48rem, 92vw);
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+}
+
+.video-tile {
+    aspect-ratio: 4 / 3;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+    border: 1px solid var(--border);
+    display: block;
+}
+
+// The as-yet-unfinished ninth slot: a quiet placeholder.
+.video-tile--empty {
+    background: repeating-linear-gradient(
+        45deg,
+        color-mix(in srgb, var(--accent) 6%, transparent),
+        color-mix(in srgb, var(--accent) 6%, transparent) 10px,
+        transparent 10px,
+        transparent 20px
+    );
+}
+
+@media (max-width: 34rem) {
+    .video-wall {
+        width: 100%;
+        left: auto;
+        transform: none;
+        gap: 0.5rem;
+    }
+}
+
 // Side-by-side source / live-render view (giraffe page).
 .split {
     display: flex;
