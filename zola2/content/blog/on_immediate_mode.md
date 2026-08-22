@@ -5,7 +5,7 @@ date = 2026-08-22
 
 In [the previous post about Keru's interface](@/blog/interface.md), I argued that a simple and minimal interface is probably the most important goal for a GUI library, and that this goal pretty much forces us to adopt a model at least superficially similar to "immediate mode", where we often have to rerun all or most of the user's GUI declaration code.
 
-My impression is that especially in the Rust community, immediate-mode GUI is not very popular, so I tried felt like I had defend this choice. Without going into the details again, here's a summary of the defensive arguments: 
+My impression is that especially in the Rust community, immediate-mode GUI is not very popular, so I felt like I had defend this choice. Without going into the details again, here's a summary of the arguments: 
 
 
 - It's not actually immediate mode: there's a `Ui` struct that retains the whole state of the GUI at all times. The declaration code just updates this retained state.
@@ -60,7 +60,9 @@ I measured this in the [`ten_thousand.rs`](https://github.com/kekelp/keru/blob/m
 
 There's a ton of space for more optimizations in Keru, especially in the unique layout algorithm or to improve general cache efficiency, but I don't want to get to them while the code is still in flux. With a bit of optimization and maybe a newer CPU, we can definitely go much higher than 10k.
 
-At the same time, 10k is already way above what a 2D GUI should realistically have on screen at the same time! In reality, the list of 10k elements would be virtualized. 
+At the same time, 10k is already way above what a 2D GUI should realistically have on screen at the same time! In reality, the list of 10k elements would be virtualized.
+
+[ todo ]
 
 
 

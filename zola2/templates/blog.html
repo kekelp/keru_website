@@ -3,11 +3,15 @@
 {% block title %}{{ section.title }} — {{ config.title | default(value="Blog") }}{% endblock %}
 
 {% block content %}
-<h2>{{ section.title }}</h2>
+<!-- <h2>{{ section.title }}</h2> -->
+
+<p>This is a blog about the Keru GUI library. The posts are meant to share some of the most interesting things I've learned while writing it, discuss and justify why it looks and works the way it does, and so on.</p>
+
+
 <ul class="posts">
     {% for page in section.pages %}
     <li>
-        <a href="{{ page.permalink }}">{{ page.title }}</a>
+        <a href="{{ page.permalink }}">› {{ page.title }}</a>
         {% if page.date %}<time datetime="{{ page.date }}">{{ page.date | date(format="%Y-%m-%d") }}</time>{% endif %}
     </li>
     {% endfor %}
