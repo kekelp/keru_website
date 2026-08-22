@@ -28,6 +28,36 @@ body, nav, a, .theme-toggle, time {
     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
+// Decorative meander-wave rails down the left and right gutters. The wave is an
+// SVG mask, so its colour is painted by `background-color` and follows the theme
+// accent (transition included, matching the toggle). Hidden on narrow viewports
+// where the centred column leaves no gutter to spare.
+body::before,
+body::after {
+    content: "";
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    width: 1.25rem;
+    background-color: var(--accent);
+    -webkit-mask: url("wave-vertical.svg") repeat-y center / 100% auto;
+            mask: url("wave-vertical.svg") repeat-y center / 100% auto;
+    opacity: 0.55;
+    pointer-events: none;
+    z-index: -1;
+    transition: background-color 0.3s ease;
+}
+
+body::before { left: 1.5rem; transform: scaleX(-1); }
+body::after  { right: 1.5rem; }
+
+// Only reveal the rails once the viewport is wide enough that they sit clear of
+// the ~40rem reading column.
+@media (max-width: 52rem) {
+    body::before,
+    body::after { display: none; }
+}
+
 body {
     max-width: 40rem;
     margin: 2rem auto;
