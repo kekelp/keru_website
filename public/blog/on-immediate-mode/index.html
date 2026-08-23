@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>On &quot;Immediate Mode&quot; — Keru</title>
-    <link rel="stylesheet" href="https://example.com/style.css">
+    <link rel="stylesheet" href="https://kekelp.github.io/keru/style.css">
     <script>
         try {
             var t = localStorage.getItem('theme');
@@ -14,9 +14,9 @@
 </head>
 <body>
     <nav>
-        <a href="https://example.com">Home</a>
-        <a href="https://example.com/blog">Blog</a>
-        <a href="https://example.com/about">About</a>
+        <a href="https://kekelp.github.io/keru">Home</a>
+        <a href="https://kekelp.github.io/keru/blog">Blog</a>
+        <a href="https://kekelp.github.io/keru/about">About</a>
         <a href="https://github.com/kekelp/keru">
             Code
             <svg viewBox="0 0 16 16" width="1em" height="1em" fill="currentColor" aria-hidden="true" style="vertical-align: -0.15em;">
@@ -45,7 +45,7 @@
         <h1>On &quot;Immediate Mode&quot;</h1>
         <time datetime="2026-08-22">2026-08-22</time>
     </header>
-    <p>In <a href="https://example.com/blog/interface/">the previous post about Keru's interface</a>, I argued that a simple and minimal interface is probably the most important goal for a GUI library, and that this goal pretty much forces us to adopt a model at least superficially similar to "immediate mode", where we often have to rerun all or most of the user's GUI declaration code.</p>
+    <p>In <a href="https://kekelp.github.io/keru/blog/interface/">the previous post about Keru's interface</a>, I argued that a simple and minimal interface is probably the most important goal for a GUI library, and that this goal pretty much forces us to adopt a model at least superficially similar to "immediate mode", where we often have to rerun all or most of the user's GUI declaration code.</p>
 <p>My impression is that especially in the Rust community, immediate-mode GUI is not very popular, so I felt like I had defend this choice. Without going into the details again, here's a summary of the arguments:</p>
 <ul>
 <li>
@@ -116,7 +116,7 @@
 </ul>
 <p>This all scales with the number of nodes as well, and it's all internal, so it can be optimized or pessimized regardless of the shape of the user-facing API. If all this work is done inefficiently, the library will be slow regardless of any advanced reactive architecture. If it's done efficiently, it will probably be fine either way. At the end of the day, it's just unlikely that rerunning the declaration code will be what makes the difference between a snappy and efficient library and a slow or wasteful one.</p>
 <h2 id="thanks-for-reading">Thanks for Reading</h2>
-<p>If you are interested, check out <a rel="external" href="https://github.com/kekelp/keru/">Keru's github page</a>, or the <a href="https://example.com/blog/">other posts on this blog</a> .</p>
+<p>If you are interested, check out <a rel="external" href="https://github.com/kekelp/keru/">Keru's github page</a>, or the <a href="https://kekelp.github.io/keru/blog/">other posts on this blog</a> .</p>
 
 </article>
 

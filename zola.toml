@@ -1,6 +1,6 @@
-base_url = "https://example.com"
+base_url = "https://kekelp.github.io/keru"
 title = "Keru"
-description = "A site for the Keru GUI library."
+description = "A website for the Keru GUI library."
 compile_sass = true
 build_search_index = false
 
