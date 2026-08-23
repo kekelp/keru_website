@@ -14,15 +14,20 @@
 </head>
 <body>
     <nav>
-        <a href="https://kekelp.github.io/keru">Home</a>
+        <a href="https://kekelp.github.io/keru">Keru</a>
         <a href="https://kekelp.github.io/keru/blog">Blog</a>
         <a href="https://kekelp.github.io/keru/about">About</a>
         <a href="/keru/live_docs/keru/index.html">Docs</a>
+        
+        <a href="https://github.com/kekelp/keru/tree/master/examples">
+            Examples
+        </a>
+
         <a href="https://github.com/kekelp/keru">
             Code
-            <svg viewBox="0 0 16 16" width="1em" height="1em" fill="currentColor" aria-hidden="true" style="vertical-align: -0.15em;">
+            <!-- <svg viewBox="0 0 16 16" width="1em" height="1em" fill="currentColor" aria-hidden="true" style="vertical-align: -0.15em;">
                 <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
-            </svg>
+            </svg> -->
         </a>
         <button
             id="theme-toggle"
@@ -127,7 +132,7 @@
 <span class="giallo-l"><span>    result</span><span style="color: light-dark(#D73A49, #F97583);"> =</span><span style="color: light-dark(#6F42C1, #B392F0);"> add_component</span><span>(</span><span>ui</span><span>)</span><span>;</span></span>
 <span class="giallo-l"><span>}</span><span>)</span><span>;</span></span>
 <span class="giallo-l"><span style="color: light-dark(#D73A49, #F97583);">return</span><span> result</span><span>;</span></span></code></pre>
-<p>For all the compiler knows, <code>nest()</code> might decide to return without doing anything with our closure, so it can't tell if the code for our nested elements is going to be executed at all. So we'll get an error about <code>result</code> being potentially uninitialized. We can work around this by returning the value from the closure or making result and <code>Option</code> and unwrapping it, but it sure would be nicer if it worked out of the box.</p>
+<p>For all the compiler knows, <code>nest()</code> might decide to return without doing anything with our closure, so it can't tell if the code for our nested elements is going to be executed at all. So we'll get an error about <code>result</code> being potentially uninitialized. We can work around this by returning the value from the closure or making result an <code>Option</code> and unwrapping it, but it sure would be nicer if it worked out of the box.</p>
 <p>For more complicated reasons, it also gets in the way when trying to implement the familiar immediate-mode pattern <code>if ui.add(BUTTON).is_clicked() { ... }</code>.
 We can't have nice syntax for both <code>nest</code> and <code>is_clicked()</code> at the same time. In Keru, we have to awkwardly pass the <code>ui</code> reference back into it: <code>if ui.add(BUTTON).is_clicked(ui) { ... }</code></p>
 <p>All we're trying to do with the closure is to call a <code>push_parent()</code> function before the inner code, and <code>pop_parent()</code> after. Closures can do this, but it would be much better to have a dedicated language construct to do this sort of thing, like Python's <code>with</code> or C#'s <code>using</code>.</p>

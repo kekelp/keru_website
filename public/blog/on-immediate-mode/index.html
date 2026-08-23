@@ -14,15 +14,20 @@
 </head>
 <body>
     <nav>
-        <a href="https://kekelp.github.io/keru">Home</a>
+        <a href="https://kekelp.github.io/keru">Keru</a>
         <a href="https://kekelp.github.io/keru/blog">Blog</a>
         <a href="https://kekelp.github.io/keru/about">About</a>
         <a href="/keru/live_docs/keru/index.html">Docs</a>
+        
+        <a href="https://github.com/kekelp/keru/tree/master/examples">
+            Examples
+        </a>
+
         <a href="https://github.com/kekelp/keru">
             Code
-            <svg viewBox="0 0 16 16" width="1em" height="1em" fill="currentColor" aria-hidden="true" style="vertical-align: -0.15em;">
+            <!-- <svg viewBox="0 0 16 16" width="1em" height="1em" fill="currentColor" aria-hidden="true" style="vertical-align: -0.15em;">
                 <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
-            </svg>
+            </svg> -->
         </a>
         <button
             id="theme-toggle"
@@ -47,7 +52,7 @@
         <time datetime="2026-08-22">2026-08-22</time>
     </header>
     <p>In <a href="https://kekelp.github.io/keru/blog/interface/">the previous post about Keru's interface</a>, I argued that a simple and minimal interface is probably the most important goal for a GUI library, and that this goal pretty much forces us to adopt a model at least superficially similar to "immediate mode", where we often have to rerun all or most of the user's GUI declaration code.</p>
-<p>My impression is that especially in the Rust community, immediate-mode GUI is not very popular, so I felt like I had defend this choice. Without going into the details again, here's a summary of the arguments:</p>
+<p>My impression is that especially in the Rust community, immediate-mode GUI is not very popular, so I felt like I had to defend this choice. Without going into the details again, here's a summary of the arguments:</p>
 <ul>
 <li>
 <p>It's not actually immediate mode: there's a <code>Ui</code> struct that retains the whole state of the GUI at all times. The declaration code just updates this retained state.</p>
@@ -56,7 +61,7 @@
 <p>The declaration code is not rerun "on every frame", but only when a meaningful event happens. If a click lands on a node not set to listen to it, or if the user is just moving the mouse around or scrolling, the Ui knows that nothing needs to be rerun.</p>
 </li>
 <li>
-<p>There are many libraries that rerun the declaration code quite often without attracting the same sort of skepticism, such as Iced. This may be a sign that some people are opposed about specific flaws of some naive immediate mode libraries rather than to the whole idea of rerunning declarative code.</p>
+<p>There are many libraries that rerun the declaration code quite often without attracting the same sort of skepticism, such as Iced. This may be a sign that some people are opposed to specific flaws of some naive immediate mode libraries rather than to the whole idea of rerunning declarative code.</p>
 </li>
 <li>
 <p>When people argue for avoiding even the price of redeclaration, they usually propose a "reactive" system, but these are usually very complicated with plenty of disadvantages beyond just the interface. Especially in non-web libraries, it seems that it's often implemented as a partial optimization layer over a redeclare-everything model.</p>
@@ -83,7 +88,7 @@
 <span class="giallo-l"><span>    }</span></span>
 <span class="giallo-l"><span>}</span></span></code></pre>
 <p>What is this code actually doing, and how expensive is it?</p>
-<p>Many of the people who assume that code like that is expensive probably have something like React in mind, where the redeclaration code would create a brand new tree from scratch to represent the desired state of the GUI, and then compared it to the retained one. Both trees probably also happened to be sprawling pointer jungles on the Javascript garbage-collected heap.</p>
+<p>Many of the people who assume that code like that is expensive probably have something like React in mind, where the redeclaration code would create a brand new tree from scratch to represent the desired state of the GUI, and then compare it to the retained one. Both trees probably also happened to be sprawling pointer jungles on the Javascript garbage-collected heap.</p>
 <p>There's definitely more reasonable ways to go about this. In Keru, whenever we <code>add()</code> a node, the function reaches into the node storage, and it either finds the old version of the node or creates it from scratch. If it finds an old node, it marks it as "fresh", updates its parameters, and updates its parent link to put it in the desired position within the tree.</p>
 <p>Then, the properties of the new node are immediately diffed against the old one. If we find a difference, we can schedule any relayouts, rerenders, or transition animations if needed.</p>
 <p>Finally, we have to do a quick linear scan over the node storage to clean up any lingering ones that were excluded from the new declaration.</p>
@@ -105,9 +110,9 @@
 <p>But I think that using free stack variables for nodes is a significant ergonomic advantage, because it allows the builder code to be separated from the <code>nest()</code> calls that define the tree structure, it allows the programmer to organize them into constants or associated values, to return them from functions, and so on.</p>
 <p>The more general point here is that it's always more flexible and more natural to map the concepts of a library to the basic primitives of the language, when it is possible. It's much better for a <code>Node</code> to be a struct than an abstract concept that emerges out of a series of function calls, and is only materialized somewhere deep inside the library outside of the user's view.</p>
 <p>Another possible performance improvement could be to represent <code>Node</code>s as a list of changes over a default value rather than a full struct with values for every field. But that wouldn't be quite as natural, and in current day Rust there's no ergonomic way to use many variable length objects without making a lot of allocations on the global heap (although these would be the sort of short-lived ones that allocators are actually fairly good at dealing with).</p>
-<p>If we <em>don't</em> want to make any changes to the inteface, but we still want it to run a bit faster, there's probably some space for some more mundane internal optimizations as well. Especially for the cache efficiency of the internal <code>Node</code> structs, which are quite big. I'll get to it at some point.</p>
+<p>If we <em>don't</em> want to make any changes to the interface, but we still want it to run a bit faster, there's probably some space for some more mundane internal optimizations as well. Especially for the cache efficiency of the internal <code>Node</code> structs, which are quite big. I'll get to it at some point.</p>
 <h2 id="the-cost-of-everything-else">The Cost of Everything Else</h2>
-<p>Let's not forget that about all the other work that the GUI has to do every time something does happen:</p>
+<p>Let's not forget about all the other work that the GUI has to do every time something does happen:</p>
 <ul>
 <li>recompute the layout,</li>
 <li>update animations,</li>

@@ -129,7 +129,7 @@ ui.add(V_STACK).nest(|| {
 return result;
 ```
 
-For all the compiler knows, `nest()` might decide to return without doing anything with our closure, so it can't tell if the code for our nested elements is going to be executed at all. So we'll get an error about `result` being potentially uninitialized. We can work around this by returning the value from the closure or making result and `Option` and unwrapping it, but it sure would be nicer if it worked out of the box.
+For all the compiler knows, `nest()` might decide to return without doing anything with our closure, so it can't tell if the code for our nested elements is going to be executed at all. So we'll get an error about `result` being potentially uninitialized. We can work around this by returning the value from the closure or making result an `Option` and unwrapping it, but it sure would be nicer if it worked out of the box.
 
 For more complicated reasons, it also gets in the way when trying to implement the familiar immediate-mode pattern `if ui.add(BUTTON).is_clicked() { ... }`.
 We can't have nice syntax for both `nest` and `is_clicked()` at the same time. In Keru, we have to awkwardly pass the `ui` reference back into it: `if ui.add(BUTTON).is_clicked(ui) { ... }`

@@ -5,14 +5,14 @@ date = 2026-08-22
 
 In [the previous post about Keru's interface](@/blog/interface.md), I argued that a simple and minimal interface is probably the most important goal for a GUI library, and that this goal pretty much forces us to adopt a model at least superficially similar to "immediate mode", where we often have to rerun all or most of the user's GUI declaration code.
 
-My impression is that especially in the Rust community, immediate-mode GUI is not very popular, so I felt like I had defend this choice. Without going into the details again, here's a summary of the arguments: 
+My impression is that especially in the Rust community, immediate-mode GUI is not very popular, so I felt like I had to defend this choice. Without going into the details again, here's a summary of the arguments: 
 
 
 - It's not actually immediate mode: there's a `Ui` struct that retains the whole state of the GUI at all times. The declaration code just updates this retained state.
 
 - The declaration code is not rerun "on every frame", but only when a meaningful event happens. If a click lands on a node not set to listen to it, or if the user is just moving the mouse around or scrolling, the Ui knows that nothing needs to be rerun.
 
-- There are many libraries that rerun the declaration code quite often without attracting the same sort of skepticism, such as Iced. This may be a sign that some people are opposed about specific flaws of some naive immediate mode libraries rather than to the whole idea of rerunning declarative code.
+- There are many libraries that rerun the declaration code quite often without attracting the same sort of skepticism, such as Iced. This may be a sign that some people are opposed to specific flaws of some naive immediate mode libraries rather than to the whole idea of rerunning declarative code.
 
 - When people argue for avoiding even the price of redeclaration, they usually propose a "reactive" system, but these are usually very complicated with plenty of disadvantages beyond just the interface. Especially in non-web libraries, it seems that it's often implemented as a partial optimization layer over a redeclare-everything model.
 
@@ -46,7 +46,7 @@ fn update_ui(state: &mut State, ui: &mut Ui) {
 
 What is this code actually doing, and how expensive is it? 
 
-Many of the people who assume that code like that is expensive probably have something like React in mind, where the redeclaration code would create a brand new tree from scratch to represent the desired state of the GUI, and then compared it to the retained one. Both trees probably also happened to be sprawling pointer jungles on the Javascript garbage-collected heap.
+Many of the people who assume that code like that is expensive probably have something like React in mind, where the redeclaration code would create a brand new tree from scratch to represent the desired state of the GUI, and then compare it to the retained one. Both trees probably also happened to be sprawling pointer jungles on the Javascript garbage-collected heap.
 
 There's definitely more reasonable ways to go about this. In Keru, whenever we `add()` a node, the function reaches into the node storage, and it either finds the old version of the node or creates it from scratch. If it finds an old node, it marks it as "fresh", updates its parameters, and updates its parent link to put it in the desired position within the tree.
 
@@ -88,12 +88,12 @@ The more general point here is that it's always more flexible and more natural t
 
 Another possible performance improvement could be to represent `Node`s as a list of changes over a default value rather than a full struct with values for every field. But that wouldn't be quite as natural, and in current day Rust there's no ergonomic way to use many variable length objects without making a lot of allocations on the global heap (although these would be the sort of short-lived ones that allocators are actually fairly good at dealing with).
 
-If we *don't* want to make any changes to the inteface, but we still want it to run a bit faster, there's probably some space for some more mundane internal optimizations as well. Especially for the cache efficiency of the internal `Node` structs, which are quite big. I'll get to it at some point.
+If we *don't* want to make any changes to the interface, but we still want it to run a bit faster, there's probably some space for some more mundane internal optimizations as well. Especially for the cache efficiency of the internal `Node` structs, which are quite big. I'll get to it at some point.
 
 
 ## The Cost of Everything Else
 
-Let's not forget that about all the other work that the GUI has to do every time something does happen:
+Let's not forget about all the other work that the GUI has to do every time something does happen:
 
 - recompute the layout,
 - update animations,

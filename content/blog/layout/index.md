@@ -13,7 +13,7 @@ The enlightening example is this innocent-looking giraffe layout, taken from [th
 
 <figure>
     <img src="giraffe_original.png" alt="Edaqa Mortoray's giraffe layout.">
-    <figcaption>You can ignore the dog, as it doesn't partecipate in the layout in any interesting way.</figcaption>
+    <figcaption>You can ignore the dog, as it doesn't participate in the layout in any interesting way.</figcaption>
 </figure>
 
 In this layout, the multi-line paragraph fits to the width of the single-line label. The giraffe fits the height of the whole right section, and its width is half of its height, to preserve the aspect ratio of the bitmap image. As it turns out, most algorithms can't solve this.
@@ -25,9 +25,9 @@ I also did some experiments with CSS, and couldn't get it to solve it either. Be
 
 To be clear, I don't think this is necessarily a huge problem: especially in the case of `clay` there's nothing wrong with sticking to a simpler and faster algorithm if it works for the intended application. There's plenty of GUI programs that work great without any advanced layouts of this kind and don't run into any of these issues.
 
-However, it's not uncommon to hear people complaining about the unfriendlyness of layout systems. If it was possible to find a more general solution that worked in a more consistent and predictable way without surprises, it might go a long way towards making the system feel more reliable and user-friendly.
+However, it's not uncommon to hear people complaining about the unfriendliness of layout systems. If it was possible to find a more general solution that worked in a more consistent and predictable way without surprises, it might go a long way towards making the system feel more reliable and user-friendly.
 
-My conclusion for now is that these limitations is due to the fact that most layout algorithms are implemented through a series of top-down or bottom-up tree traversals, and the dependencies in the giraffe example just don't line up with them. As the original giraffe blog post notes, solving an arbitrary dependency graph by doing multiple passes until everything is solved leads to exponential complexity, so the algorithms cut some corners. Sometimes doing a lot of memoization can help, but sometimes they just give up.
+My conclusion for now is that these limitations are due to the fact that most layout algorithms are implemented through a series of top-down or bottom-up tree traversals, and the dependencies in the giraffe example just don't line up with them. As the original giraffe blog post notes, solving an arbitrary dependency graph by doing multiple passes until everything is solved leads to exponential complexity, so the algorithms cut some corners. Sometimes doing a lot of memoization can help, but sometimes they just give up.
 
 To understand what was going on, I tried drawing the giraffe on paper and asking myself what would an ideal layout engine do to solve this layout properly.
 
@@ -86,7 +86,7 @@ When you put it like this, it doesn't even sound that exciting, but it works. Th
 
 ## Cycles
 
-You might be wondering, "What about cycles"? That's a fair question to have when dealing with any sort of graph. But in practice they aren't much of a problem.
+You might be wondering, "What about cycles?" That's a fair question to have when dealing with any sort of graph. But in practice they aren't much of a problem.
 
 The first thing to keep in mind is that most expressive layout systems with primitives like `Fit`, `Fill`, `AspectRatio` etc. allow the user to express logical cycles, even if they are never materialized into a real cycle in a graph. When the CSS algorithm encounters such a cycle, it fills in some fairly arbitrary and inconsistent numbers, and moves on. The bar is not very high here.
 
@@ -105,7 +105,7 @@ The last observation is that most real occurrences of cycles come from fairly si
 
 So, we can reduce the occurrence of cycles by just forcing a hard-coded resolution to some of the more common cycle-like patterns. As an obvious example, we can determine a node that has `AspectRatio` on both axes to immediately resolve to `(100, 100)`, before even entering into the graph. We can also log a warning.
 
-A more ambitious one is deciding that when a `Fit` node has only `Fill` children with no minimum sizes, the children can "punch through" the parent and fills the whole space of its *grand*parent. This is consistent with the idea of `FitContent` acting as a neutral "margin" around its content, but I'll need to experiment with this for a while to see if it leads to too many surprising results.
+A more ambitious one is deciding that when a `Fit` node has only `Fill` children with no minimum sizes, the children can "punch through" the parent and fill the whole space of its *grand*parent. This is consistent with the idea of `FitContent` acting as a neutral "margin" around its content, but I'll need to experiment with this for a while to see if it leads to too many surprising results.
 
 
 ## Different kinds of sizes
@@ -131,7 +131,7 @@ This means that a node is literally only accessible from its parent. In this sit
 
 In the style of programming that I use, on the other hand, all nodes are stored in a top-level container like a slotmap, slab, hashmap, or even a plain Vec in simpler cases. Then, nodes can refer to each other using non-owning `NodeID`s, which are indices or keys into the container.
 
-This is what allows us to model dependencies as simple value structs that contain 'NodeID`s, and to access and solve the nodes in arbitrary order when going through the dependencies.
+This is what allows us to model dependencies as simple value structs that contain `NodeID`s, and to access and solve the nodes in arbitrary order when going through the dependencies.
 
 More generally, the idea is to allow the programmer to always have a full bird's eye view on the whole state of the program, and to always have the freedom to access any of it. This is extremely helpful when experimenting with unusual algorithms or when debugging.
 
@@ -147,10 +147,10 @@ From an algorithmic complexity point of view, Keru's algorithm doesn't have any 
 However, I was still curious, so I ran some unserious ones, and compared the results with the ones from [this blog post from the PanGui project](https://www.pangui.io/blog/05-layout-rework-and-benchmarks/).
 
 I should say immediately that Keru's current implementation of the algorithm is not optimized at all. I usually try to use the heap responsibly, and that's often enough to get pretty good performance without much effort. But in this case I broke my own rules and made each node hold a heap-allocated `Vec` with a list of the nodes that depend on it.
-In addition, the layout algorithm runs on the full GUI nodes, which are huge structs containing a lot of information about the node's display, behavior, and other things completely unrelated to layout. Of course, this is not very cache friendly. This could be optimized, but to a certain level it's also an inherent disadvantage when comparing the benchmarks in dedicated layout-only libraries with the with performance of layout within a full library like with Keru.
+In addition, the layout algorithm runs on the full GUI nodes, which are huge structs containing a lot of information about the node's display, behavior, and other things completely unrelated to layout. Of course, this is not very cache friendly. This could be optimized, but to a certain level it's also an inherent disadvantage when comparing dedicated layout-only libraries with the performance of layout within a full library like Keru.
 
 
-Another important thing to remember, of course, is that the Keru numbers were measured on a completely different CPU from the other ones. The Keru ones were ran on a AMD Ryzen 7 5800H running on a laptop from 2021, which is probably a fair bit slower.
+Another important thing to remember, of course, is that the Keru numbers were measured on a completely different CPU from the other ones. The Keru ones were run on an AMD Ryzen 7 5800H running on a laptop from 2021, which is probably a fair bit slower.
 
 Despite all the caveats and the handwaving, it's still reassuring to see Keru's numbers being fairly similar to Yoga and Taffy:
 
