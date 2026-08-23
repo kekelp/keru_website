@@ -9,17 +9,15 @@
 
 <div class="split">
 
+    <div class="pane render">
+        {{ src | safe }}
+    </div>
 
     <div class="pane code">
 {{ ("```html
 " ~ src ~ "
 ```") | markdown | safe }}
     </div>
-
-    <div class="pane render">
-        {{ src | safe }}
-    </div>
-
 
 </div>
 

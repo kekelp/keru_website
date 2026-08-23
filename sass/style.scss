@@ -303,14 +303,13 @@ pre code {
 
 .split {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     gap: 1rem;
     align-items: stretch;
     margin: 1.5rem 0;
 }
 
 .split .pane {
-    flex: 1 1 300px;
     min-width: 0;
 }
 
