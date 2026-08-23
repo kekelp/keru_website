@@ -38,11 +38,29 @@
 </div>
 
 <script>
+    var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    var playing = null;
+
+    function autoPlay(v) { if (v.paused) { v._auto = true; v.play(); } }
+    function autoPause(v) { if (!v.paused) { v._auto = true; v.pause(); } }
+
     document.querySelectorAll('.video-tile').forEach(function (v) {
         if (v.tagName !== 'VIDEO') return;
+
+        v.addEventListener('play', function () {
+            if (v._auto) { v._auto = false; return; }
+            v._manual = 'play';
+        });
+        v.addEventListener('pause', function () {
+            if (v._auto) { v._auto = false; return; }
+            v._manual = 'pause';
+        });
+
         v.addEventListener('mouseenter', function () {
             v.setAttribute('controls', '');
-            v.play();
+            if (reduceMotion.matches) return;
+            if (playing && playing !== v && playing._manual !== 'play') autoPause(playing);
+            if (v._manual !== 'pause') { autoPlay(v); playing = v; }
         });
         v.addEventListener('mouseleave', function () {
             v.removeAttribute('controls');
