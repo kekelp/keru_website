@@ -42,8 +42,6 @@
         {% block content %}{% endblock %}
     </main>
     <script>
-        // 'dark'/'light' only appear here, at the DOM boundary: they're the
-        // contract with the CSS ([data-theme="..."]). Everything else is a boolean.
         var DARK = 'dark', LIGHT = 'light';
         var root = document.documentElement;
         var toggle = document.getElementById('theme-toggle');
@@ -54,7 +52,6 @@
             var t = root.getAttribute('data-theme');
             return t ? t === DARK : window.matchMedia('(prefers-color-scheme: dark)').matches;
         }
-        // Show the sun while dark (click to go light), the moon while light.
         function showIcon(dark) {
             sun.style.display = dark ? 'block' : 'none';
             moon.style.display = dark ? 'none' : 'block';
