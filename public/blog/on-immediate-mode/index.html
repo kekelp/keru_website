@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>On &quot;Immediate Mode&quot; — Keru</title>
+    <title>On &quot;Immediate Mode&quot; - Keru</title>
     <link rel="stylesheet" href="https://kekelp.github.io/keru/style.css">
     <script>
         try {
@@ -17,6 +17,7 @@
         <a href="https://kekelp.github.io/keru">Home</a>
         <a href="https://kekelp.github.io/keru/blog">Blog</a>
         <a href="https://kekelp.github.io/keru/about">About</a>
+        <a href="/keru/live_docs/keru/index.html">Docs</a>
         <a href="https://github.com/kekelp/keru">
             Code
             <svg viewBox="0 0 16 16" width="1em" height="1em" fill="currentColor" aria-hidden="true" style="vertical-align: -0.15em;">
@@ -87,10 +88,9 @@
 <p>Then, the properties of the new node are immediately diffed against the old one. If we find a difference, we can schedule any relayouts, rerenders, or transition animations if needed.</p>
 <p>Finally, we have to do a quick linear scan over the node storage to clean up any lingering ones that were excluded from the new declaration.</p>
 <p>I measured this in the <a rel="external" href="https://github.com/kekelp/keru/blob/master/examples/ten_thousand.rs"><code>ten_thousand.rs</code></a> example, which shows a non-virtualized list of 10k elements. On my laptop from 2021, rerunning the declaration code takes about 4 milliseconds, and we can comfortably scroll and interact with the nodes at 120hz:</p>
-<p>[ videos ]</p>
-<p>There's a ton of space for more optimizations in Keru, especially in the unique layout algorithm or to improve general cache efficiency, but I don't want to get to them while the code is still in flux. With a bit of optimization and maybe a newer CPU, we can definitely go much higher than 10k.</p>
-<p>At the same time, 10k is already way above what a 2D GUI should realistically have on screen at the same time! In reality, the list of 10k elements would be virtualized.</p>
-<p>[ todo ]</p>
+<p><video src="/videos/ten_thousand.mp4" loop muted playsinline controls preload="metadata" style="width: 100%; height: auto;"></video></p>
+<p>Ten thousand isn't a big number for a computer, but it's already way above what a 2D GUI should realistically have on screen at the same time. In reality, a list like this should probably be virtualized regardless of the cost of redeclaring it. Offscreen nodes can be skipped when rendering, but they still take up memory and usually still need to be layouted.</p>
+<p>In most realistic cases, we can expect the redeclaration to take less than a hundred µs for a simple GUI, and maybe one or two ms for a complicated one. Nobody will mind.</p>
 <h2 id="further-optimization">Further Optimization?</h2>
 <p>Still, some applications might have a legitimate need for ten thousand unvirtualized nodes, and four milliseconds isn't nothing.</p>
 <p>Most of the time is spent moving around and comparing the <code>Node</code> structs, which aren't small.</p>
@@ -105,6 +105,7 @@
 <p>But I think that using free stack variables for nodes is a significant ergonomic advantage, because it allows the builder code to be separated from the <code>nest()</code> calls that define the tree structure, it allows the programmer to organize them into constants or associated values, to return them from functions, and so on.</p>
 <p>The more general point here is that it's always more flexible and more natural to map the concepts of a library to the basic primitives of the language, when it is possible. It's much better for a <code>Node</code> to be a struct than an abstract concept that emerges out of a series of function calls, and is only materialized somewhere deep inside the library outside of the user's view.</p>
 <p>Another possible performance improvement could be to represent <code>Node</code>s as a list of changes over a default value rather than a full struct with values for every field. But that wouldn't be quite as natural, and in current day Rust there's no ergonomic way to use many variable length objects without making a lot of allocations on the global heap (although these would be the sort of short-lived ones that allocators are actually fairly good at dealing with).</p>
+<p>If we <em>don't</em> want to make any changes to the inteface, but we still want it to run a bit faster, there's probably some space for some more mundane internal optimizations as well. Especially for the cache efficiency of the internal <code>Node</code> structs, which are quite big. I'll get to it at some point.</p>
 <h2 id="the-cost-of-everything-else">The Cost of Everything Else</h2>
 <p>Let's not forget that about all the other work that the GUI has to do every time something does happen:</p>
 <ul>
@@ -116,7 +117,7 @@
 </ul>
 <p>This all scales with the number of nodes as well, and it's all internal, so it can be optimized or pessimized regardless of the shape of the user-facing API. If all this work is done inefficiently, the library will be slow regardless of any advanced reactive architecture. If it's done efficiently, it will probably be fine either way. At the end of the day, it's just unlikely that rerunning the declaration code will be what makes the difference between a snappy and efficient library and a slow or wasteful one.</p>
 <h2 id="thanks-for-reading">Thanks for Reading</h2>
-<p>If you are interested, check out <a rel="external" href="https://github.com/kekelp/keru/">Keru's github page</a>, or the <a href="https://kekelp.github.io/keru/blog/">other posts on this blog</a> .</p>
+<p>If you are interested, check out <a rel="external" href="https://github.com/kekelp/keru/">Keru's github page</a>, or the <a href="https://kekelp.github.io/keru/blog/">other posts on this blog</a>.</p>
 
 </article>
 
