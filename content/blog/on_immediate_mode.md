@@ -56,14 +56,11 @@ Finally, we have to do a quick linear scan over the node storage to clean up any
 
 I measured this in the [`ten_thousand.rs`](https://github.com/kekelp/keru/blob/master/examples/ten_thousand.rs) example, which shows a non-virtualized list of 10k elements. On my laptop from 2021, rerunning the declaration code takes about 4 milliseconds, and we can comfortably scroll and interact with the nodes at 120hz:
 
-[ videos ]
+<video src="/videos/ten_thousand.mp4" loop muted playsinline controls preload="metadata" style="width: 100%; height: auto;"></video>
 
-There's a ton of space for more optimizations in Keru, especially in the unique layout algorithm or to improve general cache efficiency, but I don't want to get to them while the code is still in flux. With a bit of optimization and maybe a newer CPU, we can definitely go much higher than 10k.
+Ten thousand isn't a big number for a computer, but it's already way above what a 2D GUI should realistically have on screen at the same time. In reality, a list like this should probably be virtualized regardless of the cost of redeclaring it. Offscreen nodes can be skipped when rendering, but they still take up memory and usually still need to be layouted.
 
-At the same time, 10k is already way above what a 2D GUI should realistically have on screen at the same time! In reality, the list of 10k elements would be virtualized.
-
-[ todo ]
-
+In most realistic cases, we can expect the redeclaration to take less than a hundred µs for a simple GUI, and maybe one or two ms for a complicated one. Nobody will mind.
 
 
 ## Further Optimization?
@@ -91,6 +88,9 @@ The more general point here is that it's always more flexible and more natural t
 
 Another possible performance improvement could be to represent `Node`s as a list of changes over a default value rather than a full struct with values for every field. But that wouldn't be quite as natural, and in current day Rust there's no ergonomic way to use many variable length objects without making a lot of allocations on the global heap (although these would be the sort of short-lived ones that allocators are actually fairly good at dealing with).
 
+If we *don't* want to make any changes to the inteface, but we still want it to run a bit faster, there's probably some space for some more mundane internal optimizations as well. Especially for the cache efficiency of the internal `Node` structs, which are quite big. I'll get to it at some point.
+
+
 ## The Cost of Everything Else
 
 Let's not forget that about all the other work that the GUI has to do every time something does happen:
@@ -105,5 +105,5 @@ This all scales with the number of nodes as well, and it's all internal, so it c
 
 ## Thanks for Reading
 
-If you are interested, check out [Keru's github page](https://github.com/kekelp/keru/), or the [other posts on this blog](@/blog/_index.md) .
+If you are interested, check out [Keru's github page](https://github.com/kekelp/keru/), or the [other posts on this blog](@/blog/_index.md).
 
