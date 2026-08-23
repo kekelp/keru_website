@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>On &quot;Immediate Mode&quot; — Keru</title>
+    <link rel="stylesheet" href="https://example.com/style.css">
+    <script>
+        try {
+            var t = localStorage.getItem('theme');
+            if (t) document.documentElement.setAttribute('data-theme', t);
+        } catch (e) {}
+    </script>
+</head>
+<body>
+    <nav>
+        <a href="https://example.com">Home</a>
+        <a href="https://example.com/blog">Blog</a>
+        <a href="https://example.com/about">About</a>
+        <a href="https://github.com/kekelp/keru">
+            Code
+            <svg viewBox="0 0 16 16" width="1em" height="1em" fill="currentColor" aria-hidden="true" style="vertical-align: -0.15em;">
+                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+            </svg>
+        </a>
+        <button
+            id="theme-toggle"
+            class="theme-toggle"
+            aria-label="Toggle dark mode"
+            aria-pressed="false"
+        >
+            <svg id="icon-sun" class="theme-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="4"></circle>
+                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
+            </svg>
+            <svg id="icon-moon" class="theme-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+        </button>
+    </nav>
+    <main>
+        
+<article>
+    <header class="post-header">
+        <h1>On &quot;Immediate Mode&quot;</h1>
+        <time datetime="2026-08-22">2026-08-22</time>
+    </header>
+    <p>In <a href="https://example.com/blog/interface/">the previous post about Keru's interface</a>, I argued that a simple and minimal interface is probably the most important goal for a GUI library, and that this goal pretty much forces us to adopt a model at least superficially similar to "immediate mode", where we often have to rerun all or most of the user's GUI declaration code.</p>
+<p>My impression is that especially in the Rust community, immediate-mode GUI is not very popular, so I felt like I had defend this choice. Without going into the details again, here's a summary of the arguments:</p>
+<ul>
+<li>
+<p>It's not actually immediate mode: there's a <code>Ui</code> struct that retains the whole state of the GUI at all times. The declaration code just updates this retained state.</p>
+</li>
+<li>
+<p>The declaration code is not rerun "on every frame", but only when a meaningful event happens. If a click lands on a node not set to listen to it, or if the user is just moving the mouse around or scrolling, the Ui knows that nothing needs to be rerun.</p>
+</li>
+<li>
+<p>There are many libraries that rerun the declaration code quite often without attracting the same sort of skepticism, such as Iced. This may be a sign that some people are opposed about specific flaws of some naive immediate mode libraries rather than to the whole idea of rerunning declarative code.</p>
+</li>
+<li>
+<p>When people argue for avoiding even the price of redeclaration, they usually propose a "reactive" system, but these are usually very complicated with plenty of disadvantages beyond just the interface. Especially in non-web libraries, it seems that it's often implemented as a partial optimization layer over a redeclare-everything model.</p>
+</li>
+</ul>
+<p>These are all good arguments, but as always, we have to look at the other side. If the cost of rerunning the declaration code on every event was truly paralyzing, we'd have to just get over it and use some sort of reactive system anyway.</p>
+<p>For this reason, this post will go into some detail into how the redeclaration code is implemented and how expensive it is to run it.</p>
+<p>For reference, this is what Keru's redeclaration code looks like:</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#24292E, #E1E4E8); background-color: light-dark(#FFFFFF, #24292E);" ><code data-lang="rust"><span class="giallo-l"><span style="color: light-dark(#D73A49, #F97583);">fn</span><span style="color: light-dark(#6F42C1, #B392F0);"> update_ui</span><span>(</span><span>state</span><span style="color: light-dark(#D73A49, #F97583);">:</span><span style="color: light-dark(#D73A49, #F97583);"> &amp;</span><span style="color: light-dark(#D73A49, #F97583);">mut</span><span style="color: light-dark(#6F42C1, #B392F0);"> State</span><span>,</span><span> ui</span><span style="color: light-dark(#D73A49, #F97583);">:</span><span style="color: light-dark(#D73A49, #F97583);"> &amp;</span><span style="color: light-dark(#D73A49, #F97583);">mut</span><span style="color: light-dark(#6F42C1, #B392F0);"> Ui</span><span>)</span><span> {</span></span>
+<span class="giallo-l"><span>    #</span><span>[</span><span>node_key</span><span>]</span><span style="color: light-dark(#D73A49, #F97583);"> const</span><span style="color: light-dark(#005CC5, #79B8FF);"> INCREASE</span><span style="color: light-dark(#D73A49, #F97583);">:</span><span style="color: light-dark(#6F42C1, #B392F0);"> NodeKey</span><span>;</span></span>
+<span class="giallo-l"><span>    </span></span>
+<span class="giallo-l"><span style="color: light-dark(#D73A49, #F97583);">    let</span><span> increase_button</span><span style="color: light-dark(#D73A49, #F97583);">:</span><span style="color: light-dark(#6F42C1, #B392F0);"> Node</span><span style="color: light-dark(#D73A49, #F97583);"> =</span><span style="color: light-dark(#005CC5, #79B8FF);"> BUTTON</span></span>
+<span class="giallo-l"><span style="color: light-dark(#D73A49, #F97583);">        .</span><span style="color: light-dark(#6F42C1, #B392F0);">color</span><span>(</span><span style="color: light-dark(#6F42C1, #B392F0);">Color</span><span style="color: light-dark(#D73A49, #F97583);">::</span><span style="color: light-dark(#005CC5, #79B8FF);">RED</span><span>)</span></span>
+<span class="giallo-l"><span style="color: light-dark(#D73A49, #F97583);">        .</span><span style="color: light-dark(#6F42C1, #B392F0);">text</span><span>(</span><span style="color: light-dark(#032F62, #9ECBFF);">&quot;</span><span style="color: light-dark(#032F62, #9ECBFF);">Increase</span><span style="color: light-dark(#032F62, #9ECBFF);">&quot;</span><span>)</span></span>
+<span class="giallo-l"><span style="color: light-dark(#D73A49, #F97583);">        .</span><span style="color: light-dark(#6F42C1, #B392F0);">key</span><span>(</span><span style="color: light-dark(#005CC5, #79B8FF);">INCREASE</span><span>)</span><span>;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>    ui</span><span style="color: light-dark(#D73A49, #F97583);">.</span><span style="color: light-dark(#6F42C1, #B392F0);">add</span><span>(</span><span style="color: light-dark(#6F42C1, #B392F0);">V_STACK</span><span>)</span><span style="color: light-dark(#D73A49, #F97583);">.</span><span style="color: light-dark(#6F42C1, #B392F0);">nest</span><span>(</span><span style="color: light-dark(#D73A49, #F97583);">|</span><span style="color: light-dark(#D73A49, #F97583);">|</span><span> {</span></span>
+<span class="giallo-l"><span>        ui</span><span style="color: light-dark(#D73A49, #F97583);">.</span><span style="color: light-dark(#6F42C1, #B392F0);">add</span><span>(</span><span>increase_button</span><span>)</span><span>;</span></span>
+<span class="giallo-l"><span>        ui</span><span style="color: light-dark(#D73A49, #F97583);">.</span><span style="color: light-dark(#6F42C1, #B392F0);">add</span><span>(</span><span style="color: light-dark(#005CC5, #79B8FF);">LABEL</span><span style="color: light-dark(#D73A49, #F97583);">.</span><span style="color: light-dark(#6F42C1, #B392F0);">text</span><span>(</span><span style="color: light-dark(#D73A49, #F97583);">&amp;</span><span>state</span><span style="color: light-dark(#D73A49, #F97583);">.</span><span>count</span><span style="color: light-dark(#D73A49, #F97583);">.</span><span style="color: light-dark(#6F42C1, #B392F0);">to_string</span><span>(</span><span>)</span><span>)</span><span>)</span><span>;</span></span>
+<span class="giallo-l"><span>    }</span><span>)</span><span>;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#D73A49, #F97583);">    if</span><span> ui</span><span style="color: light-dark(#D73A49, #F97583);">.</span><span style="color: light-dark(#6F42C1, #B392F0);">is_clicked</span><span>(</span><span style="color: light-dark(#005CC5, #79B8FF);">INCREASE</span><span>)</span><span> {</span></span>
+<span class="giallo-l"><span>        state</span><span style="color: light-dark(#D73A49, #F97583);">.</span><span>count </span><span style="color: light-dark(#D73A49, #F97583);">+=</span><span style="color: light-dark(#005CC5, #79B8FF);"> 1</span><span>;</span></span>
+<span class="giallo-l"><span>    }</span></span>
+<span class="giallo-l"><span>}</span></span></code></pre>
+<p>What is this code actually doing, and how expensive is it?</p>
+<p>Many of the people who assume that code like that is expensive probably have something like React in mind, where the redeclaration code would create a brand new tree from scratch to represent the desired state of the GUI, and then compared it to the retained one. Both trees probably also happened to be sprawling pointer jungles on the Javascript garbage-collected heap.</p>
+<p>There's definitely more reasonable ways to go about this. In Keru, whenever we <code>add()</code> a node, the function reaches into the node storage, and it either finds the old version of the node or creates it from scratch. If it finds an old node, it marks it as "fresh", updates its parameters, and updates its parent link to put it in the desired position within the tree.</p>
+<p>Then, the properties of the new node are immediately diffed against the old one. If we find a difference, we can schedule any relayouts, rerenders, or transition animations if needed.</p>
+<p>Finally, we have to do a quick linear scan over the node storage to clean up any lingering ones that were excluded from the new declaration.</p>
+<p>I measured this in the <a rel="external" href="https://github.com/kekelp/keru/blob/master/examples/ten_thousand.rs"><code>ten_thousand.rs</code></a> example, which shows a non-virtualized list of 10k elements. On my laptop from 2021, rerunning the declaration code takes about 4 milliseconds, and we can comfortably scroll and interact with the nodes at 120hz:</p>
+<p>[ videos ]</p>
+<p>There's a ton of space for more optimizations in Keru, especially in the unique layout algorithm or to improve general cache efficiency, but I don't want to get to them while the code is still in flux. With a bit of optimization and maybe a newer CPU, we can definitely go much higher than 10k.</p>
+<p>At the same time, 10k is already way above what a 2D GUI should realistically have on screen at the same time! In reality, the list of 10k elements would be virtualized.</p>
+<p>[ todo ]</p>
+<h2 id="further-optimization">Further Optimization?</h2>
+<p>Still, some applications might have a legitimate need for ten thousand unvirtualized nodes, and four milliseconds isn't nothing.</p>
+<p>Most of the time is spent moving around and comparing the <code>Node</code> structs, which aren't small.</p>
+<p>If we were willing to go back and change the interface for the sake of performance, we also could merge the <code>add()</code> function and the <code>Node</code> creation like this:</p>
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#24292E, #E1E4E8); background-color: light-dark(#FFFFFF, #24292E);" ><code data-lang="rust"><span class="giallo-l"><span>ui</span><span style="color: light-dark(#D73A49, #F97583);">.</span><span style="color: light-dark(#6F42C1, #B392F0);">add_button</span><span>(</span><span>)</span></span>
+<span class="giallo-l"><span style="color: light-dark(#D73A49, #F97583);">    .</span><span style="color: light-dark(#6F42C1, #B392F0);">with_color</span><span>(</span><span style="color: light-dark(#6F42C1, #B392F0);">Color</span><span style="color: light-dark(#D73A49, #F97583);">::</span><span style="color: light-dark(#005CC5, #79B8FF);">RED</span><span>)</span></span>
+<span class="giallo-l"><span style="color: light-dark(#D73A49, #F97583);">    .</span><span style="color: light-dark(#6F42C1, #B392F0);">with_size</span><span>(</span><span style="color: light-dark(#6F42C1, #B392F0);">Size</span><span style="color: light-dark(#D73A49, #F97583);">::</span><span style="color: light-dark(#6F42C1, #B392F0);">Big</span><span>)</span></span>
+<span class="giallo-l"><span style="color: light-dark(#D73A49, #F97583);">    .</span><span style="color: light-dark(#6F42C1, #B392F0);">nest</span><span>(</span><span style="color: light-dark(#D73A49, #F97583);">|</span><span style="color: light-dark(#D73A49, #F97583);">|</span><span> {</span><span> </span></span>
+<span class="giallo-l"><span style="color: light-dark(#D73A49, #F97583);">        ...</span></span>
+<span class="giallo-l"><span>    }</span><span>)</span></span></code></pre>
+<p>In this case, the property builders themselves could reach directly into the node storage and compare and diff the single field, which would likely be much cheaper.</p>
+<p>But I think that using free stack variables for nodes is a significant ergonomic advantage, because it allows the builder code to be separated from the <code>nest()</code> calls that define the tree structure, it allows the programmer to organize them into constants or associated values, to return them from functions, and so on.</p>
+<p>The more general point here is that it's always more flexible and more natural to map the concepts of a library to the basic primitives of the language, when it is possible. It's much better for a <code>Node</code> to be a struct than an abstract concept that emerges out of a series of function calls, and is only materialized somewhere deep inside the library outside of the user's view.</p>
+<p>Another possible performance improvement could be to represent <code>Node</code>s as a list of changes over a default value rather than a full struct with values for every field. But that wouldn't be quite as natural, and in current day Rust there's no ergonomic way to use many variable length objects without making a lot of allocations on the global heap (although these would be the sort of short-lived ones that allocators are actually fairly good at dealing with).</p>
+<h2 id="the-cost-of-everything-else">The Cost of Everything Else</h2>
+<p>Let's not forget that about all the other work that the GUI has to do every time something does happen:</p>
+<ul>
+<li>recompute the layout,</li>
+<li>update animations,</li>
+<li>rasterize new glyphs and relayout new text,</li>
+<li>rebuild the render data,</li>
+<li>and finally rerender the pixels on the screen.</li>
+</ul>
+<p>This all scales with the number of nodes as well, and it's all internal, so it can be optimized or pessimized regardless of the shape of the user-facing API. If all this work is done inefficiently, the library will be slow regardless of any advanced reactive architecture. If it's done efficiently, it will probably be fine either way. At the end of the day, it's just unlikely that rerunning the declaration code will be what makes the difference between a snappy and efficient library and a slow or wasteful one.</p>
+<h2 id="thanks-for-reading">Thanks for Reading</h2>
+<p>If you are interested, check out <a rel="external" href="https://github.com/kekelp/keru/">Keru's github page</a>, or the <a href="https://example.com/blog/">other posts on this blog</a> .</p>
+
+</article>
+
+    </main>
+    <script>
+        var DARK = 'dark', LIGHT = 'light';
+        var root = document.documentElement;
+        var toggle = document.getElementById('theme-toggle');
+        var sun = document.getElementById('icon-sun');
+        var moon = document.getElementById('icon-moon');
+
+        function isDark() {
+            var t = root.getAttribute('data-theme');
+            return t ? t === DARK : window.matchMedia('(prefers-color-scheme: dark)').matches;
+        }
+        function showIcon(dark) {
+            sun.style.display = dark ? 'block' : 'none';
+            moon.style.display = dark ? 'none' : 'block';
+        }
+        function apply(dark) {
+            root.setAttribute('data-theme', dark ? DARK : LIGHT);
+            showIcon(dark);
+            toggle.setAttribute('aria-pressed', dark ? 'true' : 'false');
+            try { localStorage.setItem('theme', dark ? DARK : LIGHT); } catch (e) {}
+        }
+
+        showIcon(isDark());
+        toggle.setAttribute('aria-pressed', isDark() ? 'true' : 'false');
+        toggle.addEventListener('click', function () {
+            apply(!isDark());
+        });
+    </script>
+</body>
+</html>

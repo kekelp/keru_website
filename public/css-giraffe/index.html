@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CSS Giraffe — Keru</title>
+    <link rel="stylesheet" href="https://example.com/style.css">
+    <script>
+        try {
+            var t = localStorage.getItem('theme');
+            if (t) document.documentElement.setAttribute('data-theme', t);
+        } catch (e) {}
+    </script>
+</head>
+<body>
+    <nav>
+        <a href="https://example.com">Home</a>
+        <a href="https://example.com/blog">Blog</a>
+        <a href="https://example.com/about">About</a>
+        <a href="https://github.com/kekelp/keru">
+            Code
+            <svg viewBox="0 0 16 16" width="1em" height="1em" fill="currentColor" aria-hidden="true" style="vertical-align: -0.15em;">
+                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+            </svg>
+        </a>
+        <button
+            id="theme-toggle"
+            class="theme-toggle"
+            aria-label="Toggle dark mode"
+            aria-pressed="false"
+        >
+            <svg id="icon-sun" class="theme-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="4"></circle>
+                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
+            </svg>
+            <svg id="icon-moon" class="theme-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+        </button>
+    </nav>
+    <main>
+        
+
+<h1>CSS Giraffe</h1>
+<p> This is an attempt to implement the <a href="https://example.com/blog/layout/">giraffe layout</a> in CSS. The giraffe stays at zero width.</p>
+
+<div class="split">
+
+    <div class="pane render">
+        <style>
+  .hstack {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 10px;
+    padding: 10px;
+    background: hotpink;
+  }
+
+  .giraffe {
+    aspect-ratio: 0.5;
+    background: linear-gradient(0deg, red, blue);
+  }
+
+  .vstack {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: max-content;
+  }
+
+  .paragraph {
+    width: 0;
+    min-width: 100%;
+    text-align: justify;
+    font-size: 14px;
+    color: white;
+  }
+</style>
+
+<div class="hstack">
+  <div class="giraffe"></div>
+  <div class="vstack">
+    <div style="color:white">Single line text</div>
+    <div class="paragraph">Wrapping text with a lot of text that overflows. Wrapping text with a lot of text that overflows.</div>
+  </div>
+</div>
+
+    </div>
+
+    <div class="pane code">
+<pre class="giallo" style="color-scheme: light dark; color: light-dark(#24292E, #E1E4E8); background-color: light-dark(#FFFFFF, #24292E);" ><code data-lang="html"><span class="giallo-l"><span>&lt;</span><span style="color: light-dark(#22863A, #85E89D);">style</span><span>&gt;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#6F42C1, #B392F0);">  .</span><span style="color: light-dark(#6F42C1, #B392F0);">hstack</span><span> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#005CC5, #79B8FF);">    display</span><span>:</span><span style="color: light-dark(#005CC5, #79B8FF);"> inline-flex</span><span>;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#005CC5, #79B8FF);">    flex-direction</span><span>:</span><span style="color: light-dark(#005CC5, #79B8FF);"> row</span><span>;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#005CC5, #79B8FF);">    align-items</span><span>:</span><span style="color: light-dark(#005CC5, #79B8FF);"> stretch</span><span>;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#005CC5, #79B8FF);">    gap</span><span>:</span><span style="color: light-dark(#005CC5, #79B8FF);"> 10</span><span style="color: light-dark(#D73A49, #F97583);">px</span><span>;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#005CC5, #79B8FF);">    padding</span><span>:</span><span style="color: light-dark(#005CC5, #79B8FF);"> 10</span><span style="color: light-dark(#D73A49, #F97583);">px</span><span>;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#005CC5, #79B8FF);">    background</span><span>:</span><span style="color: light-dark(#005CC5, #79B8FF);"> hotpink</span><span>;</span></span>
+<span class="giallo-l"><span>  }</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#6F42C1, #B392F0);">  .</span><span style="color: light-dark(#6F42C1, #B392F0);">giraffe</span><span> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#005CC5, #79B8FF);">    aspect-ratio</span><span>:</span><span style="color: light-dark(#005CC5, #79B8FF);"> 0.5</span><span>;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#005CC5, #79B8FF);">    background</span><span>:</span><span style="color: light-dark(#005CC5, #79B8FF);"> linear-gradient</span><span>(</span><span style="color: light-dark(#005CC5, #79B8FF);">0</span><span style="color: light-dark(#D73A49, #F97583);">deg</span><span>,</span><span style="color: light-dark(#005CC5, #79B8FF);"> red</span><span>,</span><span style="color: light-dark(#005CC5, #79B8FF);"> blue</span><span>)</span><span>;</span></span>
+<span class="giallo-l"><span>  }</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#6F42C1, #B392F0);">  .</span><span style="color: light-dark(#6F42C1, #B392F0);">vstack</span><span> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#005CC5, #79B8FF);">    display</span><span>:</span><span style="color: light-dark(#005CC5, #79B8FF);"> flex</span><span>;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#005CC5, #79B8FF);">    flex-direction</span><span>:</span><span style="color: light-dark(#005CC5, #79B8FF);"> column</span><span>;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#005CC5, #79B8FF);">    align-items</span><span>:</span><span style="color: light-dark(#005CC5, #79B8FF);"> stretch</span><span>;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#005CC5, #79B8FF);">    width</span><span>:</span><span style="color: light-dark(#005CC5, #79B8FF);"> max-content</span><span>;</span></span>
+<span class="giallo-l"><span>  }</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: light-dark(#6F42C1, #B392F0);">  .</span><span style="color: light-dark(#6F42C1, #B392F0);">paragraph</span><span> {</span></span>
+<span class="giallo-l"><span style="color: light-dark(#005CC5, #79B8FF);">    width</span><span>:</span><span style="color: light-dark(#005CC5, #79B8FF);"> 0</span><span>;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#005CC5, #79B8FF);">    min-width</span><span>:</span><span style="color: light-dark(#005CC5, #79B8FF);"> 100</span><span style="color: light-dark(#D73A49, #F97583);">%</span><span>;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#005CC5, #79B8FF);">    text-align</span><span>:</span><span style="color: light-dark(#005CC5, #79B8FF);"> justify</span><span>;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#005CC5, #79B8FF);">    font-size</span><span>:</span><span style="color: light-dark(#005CC5, #79B8FF);"> 14</span><span style="color: light-dark(#D73A49, #F97583);">px</span><span>;</span></span>
+<span class="giallo-l"><span style="color: light-dark(#005CC5, #79B8FF);">    color</span><span>:</span><span style="color: light-dark(#005CC5, #79B8FF);"> white</span><span>;</span></span>
+<span class="giallo-l"><span>  }</span></span>
+<span class="giallo-l"><span>&lt;</span><span>/</span><span style="color: light-dark(#22863A, #85E89D);">style</span><span>&gt;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>&lt;</span><span style="color: light-dark(#22863A, #85E89D);">div</span><span style="color: light-dark(#6F42C1, #B392F0);"> class</span><span>=</span><span style="color: light-dark(#032F62, #9ECBFF);">&quot;</span><span style="color: light-dark(#032F62, #9ECBFF);">hstack</span><span style="color: light-dark(#032F62, #9ECBFF);">&quot;</span><span>&gt;</span></span>
+<span class="giallo-l"><span>  &lt;</span><span style="color: light-dark(#22863A, #85E89D);">div</span><span style="color: light-dark(#6F42C1, #B392F0);"> class</span><span>=</span><span style="color: light-dark(#032F62, #9ECBFF);">&quot;</span><span style="color: light-dark(#032F62, #9ECBFF);">giraffe</span><span style="color: light-dark(#032F62, #9ECBFF);">&quot;</span><span>&gt;</span><span>&lt;/</span><span style="color: light-dark(#22863A, #85E89D);">div</span><span>&gt;</span></span>
+<span class="giallo-l"><span>  &lt;</span><span style="color: light-dark(#22863A, #85E89D);">div</span><span style="color: light-dark(#6F42C1, #B392F0);"> class</span><span>=</span><span style="color: light-dark(#032F62, #9ECBFF);">&quot;</span><span style="color: light-dark(#032F62, #9ECBFF);">vstack</span><span style="color: light-dark(#032F62, #9ECBFF);">&quot;</span><span>&gt;</span></span>
+<span class="giallo-l"><span>    &lt;</span><span style="color: light-dark(#22863A, #85E89D);">div</span><span style="color: light-dark(#6F42C1, #B392F0);"> style</span><span>=</span><span style="color: light-dark(#032F62, #9ECBFF);">&quot;</span><span style="color: light-dark(#032F62, #9ECBFF);">color:white</span><span style="color: light-dark(#032F62, #9ECBFF);">&quot;</span><span>&gt;</span><span>Single line text</span><span>&lt;/</span><span style="color: light-dark(#22863A, #85E89D);">div</span><span>&gt;</span></span>
+<span class="giallo-l"><span>    &lt;</span><span style="color: light-dark(#22863A, #85E89D);">div</span><span style="color: light-dark(#6F42C1, #B392F0);"> class</span><span>=</span><span style="color: light-dark(#032F62, #9ECBFF);">&quot;</span><span style="color: light-dark(#032F62, #9ECBFF);">paragraph</span><span style="color: light-dark(#032F62, #9ECBFF);">&quot;</span><span>&gt;</span><span>Wrapping text with a lot of text that overflows. Wrapping text with a lot of text that overflows.</span><span>&lt;/</span><span style="color: light-dark(#22863A, #85E89D);">div</span><span>&gt;</span></span>
+<span class="giallo-l"><span>  &lt;/</span><span style="color: light-dark(#22863A, #85E89D);">div</span><span>&gt;</span></span>
+<span class="giallo-l"><span>&lt;/</span><span style="color: light-dark(#22863A, #85E89D);">div</span><span>&gt;</span></span>
+<span class="giallo-l"></span></code></pre>
+    </div>
+
+</div>
+
+
+    </main>
+    <script>
+        var DARK = 'dark', LIGHT = 'light';
+        var root = document.documentElement;
+        var toggle = document.getElementById('theme-toggle');
+        var sun = document.getElementById('icon-sun');
+        var moon = document.getElementById('icon-moon');
+
+        function isDark() {
+            var t = root.getAttribute('data-theme');
+            return t ? t === DARK : window.matchMedia('(prefers-color-scheme: dark)').matches;
+        }
+        function showIcon(dark) {
+            sun.style.display = dark ? 'block' : 'none';
+            moon.style.display = dark ? 'none' : 'block';
+        }
+        function apply(dark) {
+            root.setAttribute('data-theme', dark ? DARK : LIGHT);
+            showIcon(dark);
+            toggle.setAttribute('aria-pressed', dark ? 'true' : 'false');
+            try { localStorage.setItem('theme', dark ? DARK : LIGHT); } catch (e) {}
+        }
+
+        showIcon(isDark());
+        toggle.setAttribute('aria-pressed', isDark() ? 'true' : 'false');
+        toggle.addEventListener('click', function () {
+            apply(!isDark());
+        });
+    </script>
+</body>
+</html>

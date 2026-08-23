@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>A New GUI Layout Algorithm? — Keru</title>
+    <link rel="stylesheet" href="https://example.com/style.css">
+    <script>
+        try {
+            var t = localStorage.getItem('theme');
+            if (t) document.documentElement.setAttribute('data-theme', t);
+        } catch (e) {}
+    </script>
+</head>
+<body>
+    <nav>
+        <a href="https://example.com">Home</a>
+        <a href="https://example.com/blog">Blog</a>
+        <a href="https://example.com/about">About</a>
+        <a href="https://github.com/kekelp/keru">
+            Code
+            <svg viewBox="0 0 16 16" width="1em" height="1em" fill="currentColor" aria-hidden="true" style="vertical-align: -0.15em;">
+                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+            </svg>
+        </a>
+        <button
+            id="theme-toggle"
+            class="theme-toggle"
+            aria-label="Toggle dark mode"
+            aria-pressed="false"
+        >
+            <svg id="icon-sun" class="theme-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="4"></circle>
+                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
+            </svg>
+            <svg id="icon-moon" class="theme-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+        </button>
+    </nav>
+    <main>
+        
+<article>
+    <header class="post-header">
+        <h1>A New GUI Layout Algorithm?</h1>
+        <time datetime="2026-08-21">2026-08-21</time>
+    </header>
+    <p>This blog post is about the experimental layout system in Keru, my experimental GUI library for Rust. It uses a fairly unorthodox layout algorithm based on explicit dependencies between nodes.</p>
+<p>When I first started writing Keru, I actually didn't have any strong opinions about layout, and I implemented a very simple system inspired by some blog posts describing the one in SwiftUI (it was 2024, so you couldn't just ask AI to write it). Unsurprisingly, it had some limitations, and I returned to layout some time later.</p>
+<p>This time, I finally learned that GUI layout is more of an art than a science: a layout library offers some layout primitives that the user can compose, but when it comes to solving them into real rectangle coordinates, it usually makes no real promises. It's sort of common to do a fairly half-hearted attempt, give out an inconsistent answer, and declare that particular layout unsupported.</p>
+<p>The enlightening example is this innocent-looking giraffe layout, taken from <a rel="external" href="https://mortoray.com/why_ui_layout_calculations_are_slow/">this blog post by Edaqa Mortoray</a>:</p>
+<figure>
+    <img src="giraffe_original.png" alt="Edaqa Mortoray's giraffe layout.">
+    <figcaption>You can ignore the dog, as it doesn't partecipate in the layout in any interesting way.</figcaption>
+</figure>
+<p>In this layout, the multi-line paragraph fits to the width of the single-line label. The giraffe fits the height of the whole right section, and its width is half of its height, to preserve the aspect ratio of the bitmap image. As it turns out, most algorithms can't solve this.</p>
+<p>The first thing I did was trying to implement the <code>clay</code> algorithm in Keru, and I think I understood its algorithm well enough to conclude that it couldn't possibly solve this case.</p>
+<p>I also did some experiments with CSS, and couldn't get it to solve it either. Because of how complicated CSS is, it's still entirely possible that a way to solve it exists, and I just didn't find the magic word that would make it happen. What I can say with certainty is that writing it in <a href="/css-giraffe/" target="_blank" rel="noopener">the obvious way</a> doesn't work: the giraffe stays at zero width.</p>
+<p>To be clear, I don't think this is necessarily a huge problem: especially in the case of <code>clay</code> there's nothing wrong with sticking to a simpler and faster algorithm if it works for the intended application. There's plenty of GUI programs that work great without any advanced layouts of this kind and don't run into any of these issues.</p>
+<p>However, it's not uncommon to hear people complaining about the unfriendlyness of layout systems. If it was possible to find a more general solution that worked in a more consistent and predictable way without surprises, it might go a long way towards making the system feel more reliable and user-friendly.</p>
+<p>My conclusion for now is that these limitations is due to the fact that most layout algorithms are implemented through a series of top-down or bottom-up tree traversals, and the dependencies in the giraffe example just don't line up with them. As the original giraffe blog post notes, solving an arbitrary dependency graph by doing multiple passes until everything is solved leads to exponential complexity, so the algorithms cut some corners. Sometimes doing a lot of memoization can help, but sometimes they just give up.</p>
+<p>To understand what was going on, I tried drawing the giraffe on paper and asking myself what would an ideal layout engine do to solve this layout properly.</p>
+<figure>
+    <img src="giraffe_paper.png" alt="Working out the giraffe's dependency chain on paper.">
+    <figcaption>Again, you can ignore the dog.</figcaption>
+</figure>
+<p>It turns out that in this case there's a pretty straightforward dependency chain:</p>
+<ul>
+<li>The single-line text determines the width of the v-stack on the right.</li>
+<li>The wrapping text fills the width of the v-stack, and determines its height by wrapping.</li>
+<li>The heights of the single-line text and the wrapping text sum up to determine the height of the h-stack.</li>
+<li>The giraffe fills the height of the h-stack, and determines its width by aspect-ratio.</li>
+<li>The widths of the giraffe and the v-stack sum up to determine the width of the outer panel.</li>
+</ul>
+<h2 id="the-algorithm">The Algorithm</h2>
+<p>It's not that hard to write an algorithm that goes through this chain in order.</p>
+<p>The goal is to build a graph of dependencies, then solve it. In the simplest version of the algorithm, every element in the graph is a <code>(NodeID, Axis)</code> pair, and each dependency is an edge in the graph: <code>{ dependent: (NodeID, Axis), depends_on: (NodeID, Axis) }</code>.</p>
+<ul>
+<li>
+<p>For each of these elements, we keep a list of elements that depend on it, and a count of elements it depends on.</p>
+<p>In practice, the list and the count can be stored directly on the UI node. Each UI node will have two, one for each axis.</p>
+</li>
+<li>
+<p>Do a full traversal of the UI tree:</p>
+<ul>
+<li>
+<p>For each node, compute the dependencies of both its axes based on its layout role. For example, if a node is <code>Fill</code> or <code>Fraction/Percent</code> on the <code>X</code> axis, then its <code>X</code> element depends on its parent's <code>X</code> element.</p>
+<p>Similarly, a <code>Fit</code> node depends on all its children. Stacks add some complication, but not much.</p>
+</li>
+<li>
+<p>Note these dependencies into the dependent node's count and the depended node's list.</p>
+</li>
+<li>
+<p>If the node has a determined size on an axis, such as a fixed size in <code>Pixels</code>, if it contains non-wrapping text, or if it is the root node with size <code>(1.0, 1.0)</code>, we also add that element to a solver queue.</p>
+</li>
+</ul>
+</li>
+<li>
+<p>Then, go through the solver queue:</p>
+<ul>
+<li>
+<p>Solve the node's size. The initial elements can be solved trivially without dependencies.</p>
+</li>
+<li>
+<p>Go through the solved node's list of dependants, and decrease the dependency count of that element by 1. If it reaches zero, push that element to the back of the solver queue.</p>
+</li>
+</ul>
+</li>
+<li>
+<p>Continue until the solver queue is empty.</p>
+</li>
+</ul>
+<p>When you put it like this, it doesn't even sound that exciting, but it works. The single-line text is the starting point, and the solver steps through the chain exactly as we described above. Here is the solved giraffe:</p>
+<figure>
+    <img src="giraffe_solved.png" alt="Giraffe solved in Keru.">
+    <figcaption>The giraffe is replaced by a gradient, as I don't have an aesthetically consistent giraffe picture. But you can see, everything fits, and the giraffe has the correct aspect ratio.</figcaption>
+</figure>
+<h2 id="cycles">Cycles</h2>
+<p>You might be wondering, "What about cycles"? That's a fair question to have when dealing with any sort of graph. But in practice they aren't much of a problem.</p>
+<p>The first thing to keep in mind is that most expressive layout systems with primitives like <code>Fit</code>, <code>Fill</code>, <code>AspectRatio</code> etc. allow the user to express logical cycles, even if they are never materialized into a real cycle in a graph. When the CSS algorithm encounters such a cycle, it fills in some fairly arbitrary and inconsistent numbers, and moves on. The bar is not very high here.</p>
+<p>On the other hand, with the graph algorithm, any node that wasn't reached by the solver is unsolvable due to cycles, so it's easy to set a flag, and run a second pass to recognize these nodes, log a warning, and collapse them to a fallback size or to zero.</p>
+<p>The real weakness of the graph algorithm as described above is that it can make cycles "viral". Imagine a layout with two nodes that form a cycle, one plain node with a regular fixed size, and a node that depends on all of them (for example, a <code>Fit</code> container around all of them).</p>
+<p>An algorithm that fills all of them with best-effort values won't have any good numbers for the two cycling nodes, but it might have a good guess for the container, based just on the plain node. The basic graph solver, on the other hand, will stop without solving the container, because it has dependencies that were never solved.</p>
+<p>It's not hard to extend the graph algorithm to fix this, though. In short, we need to keep track of the elements that did get some useful input flowing into them, but whose dependency count never dropped to zero. After we're done with the main solver queue, we can take the first of these elements, we collapse its unsolved dependencies to zero or to a fallback size, push them back onto the queue, and resume solving. Loop until there are no more of these "partially unsolvable" elements.</p>
+<p>In this way, we can make sure that cycles don't mess up more of the layout than they have to.</p>
+<p>The last observation is that most real occurrences of cycles come from fairly simple localized cycles, rather than long complicated chains.</p>
+<p>So, we can reduce the occurrence of cycles by just forcing a hard-coded resolution to some of the more common cycle-like patterns. As an obvious example, we can determine a node that has <code>AspectRatio</code> on both axes to immediately resolve to <code>(100, 100)</code>, before even entering into the graph. We can also log a warning.</p>
+<p>A more ambitious one is deciding that when a <code>Fit</code> node has only <code>Fill</code> children with no minimum sizes, the children can "punch through" the parent and fills the whole space of its <em>grand</em>parent. This is consistent with the idea of <code>FitContent</code> acting as a neutral "margin" around its content, but I'll need to experiment with this for a while to see if it leads to too many surprising results.</p>
+<h2 id="different-kinds-of-sizes">Different kinds of sizes</h2>
+<p>The next step in sophistication for the layout algorithm is to support maximum and minimum sizes. To do this, we expand the graphs: instead of a <code>(NodeID, Axis)</code> pair, every graph element is a triplet of <code>(NodeID, Axis, SizeType)</code>, where <code>SizeType</code> can be <code>Min</code>, <code>Max</code>, <code>Regular</code> or <code>Final</code>. Nodes with a min and max size on any axis will get all four elements, and the <code>Final</code> element will depend on all the other three.</p>
+<p>When min and max sizes combine with some of the most complex cases of stack containers, this actually ends up complicating the picture quite a bit. Eventually, we also have to add some other kinds of more abstract <code>SizeTypes</code>, representing some partial calculations that the stacks have to do.</p>
+<p>However, it turns out that the graph approach can deal with all of these complications, as long as we write down all the dependencies correctly. For this reason, I won't go into the details. If you are skeptical about this system's ability to solve any specific layout problem, let me know, and I will try it. You can also try it yourself and let me know how it goes: Keru is a pure Rust library and uses <code>winit</code> and <code>wgpu</code>, so trying it out should be relatively easy on most systems.</p>
+<h2 id="data-layout-matters">Data layout matters?</h2>
+<p>Keru is an experimental library that hasn't gone through any real-world testing, so there might still be many good reasons why you shouldn't do your layout like this after all. However, I was still surprised that I couldn't find anyone discussing an approach like this, even in blog posts or internet discussions.
+The common wisdom just seems to be that layout algorithms are implemented with a series of tree-order traversals, usually with some memoization.</p>
+<p>One exception is the old Cassowary constraint solver. It seems to have a bit of a bad reputation as an over-engineered historical oddity compared to the modern approaches, so it's probably fair to not consider it part of the current-day common wisdom. And in any case, its constraint system didn't look much like the dependency algorithm in Keru either.</p>
+<p>Obviously there's no single answer for why things ended up like this, but it leads me to an interesting consideration about how the way in which the data layout of the tree may affect the choice of algorithms.</p>
+<p>In the dark ages of programming, there was a common idea that the way to build a tree of nodes was to put each node in a separate heap allocation, and have the node's parent hold the pointer to it, because it "owns" it.</p>
+<p>This means that a node is literally only accessible from its parent. In this situation, it's not surprising that most algorithms end up looking like a sequence of tree-order traversals!</p>
+<p>In the style of programming that I use, on the other hand, all nodes are stored in a top-level container like a slotmap, slab, hashmap, or even a plain Vec in simpler cases. Then, nodes can refer to each other using non-owning <code>NodeID</code>s, which are indices or keys into the container.</p>
+<p>This is what allows us to model dependencies as simple value structs that contain 'NodeID`s, and to access and solve the nodes in arbitrary order when going through the dependencies.</p>
+<p>More generally, the idea is to allow the programmer to always have a full bird's eye view on the whole state of the program, and to always have the freedom to access any of it. This is extremely helpful when experimenting with unusual algorithms or when debugging.</p>
+<p>There are many other factors in this kind of decision, most importantly the impact on performance of using many separate allocations, and the loss of RAII on the other side. But this is an example that shows how a slotmap-based layout can actually improve the ergonomics, flexibility and understandability of the code as well.</p>
+<h2 id="performance">Performance</h2>
+<p>Layout is often considered to be a fairly slow part of a GUI library's pipeline, so it's natural to wonder about the performance of a new algorithm.</p>
+<p>From an algorithmic complexity point of view, Keru's algorithm doesn't have any major quadratic or exponential scaling on the global number of nodes, and it still boils down to the same per-node calculations, so it's reasonable to expect it to work "fine". Other than that, unfortunately I don't have a lot of useful information, as I didn't run any serious benchmarks.</p>
+<p>However, I was still curious, so I ran some unserious ones, and compared the results with the ones from <a rel="external" href="https://www.pangui.io/blog/05-layout-rework-and-benchmarks/">this blog post from the PanGui project</a>.</p>
+<p>I should say immediately that Keru's current implementation of the algorithm is not optimized at all. I usually try to use the heap responsibly, and that's often enough to get pretty good performance without much effort. But in this case I broke my own rules and made each node hold a heap-allocated <code>Vec</code> with a list of the nodes that depend on it.
+In addition, the layout algorithm runs on the full GUI nodes, which are huge structs containing a lot of information about the node's display, behavior, and other things completely unrelated to layout. Of course, this is not very cache friendly. This could be optimized, but to a certain level it's also an inherent disadvantage when comparing the benchmarks in dedicated layout-only libraries with the with performance of layout within a full library like with Keru.</p>
+<p>Another important thing to remember, of course, is that the Keru numbers were measured on a completely different CPU from the other ones. The Keru ones were ran on a AMD Ryzen 7 5800H running on a laptop from 2021, which is probably a fair bit slower.</p>
+<p>Despite all the caveats and the handwaving, it's still reassuring to see Keru's numbers being fairly similar to Yoga and Taffy:</p>
+<h3 id="total-layout-time">Total layout time</h3>
+<table><thead><tr><th style="text-align: left">Benchmark</th><th style="text-align: right">Nodes</th><th style="text-align: right">Taffy</th><th style="text-align: right">Yoga</th><th style="text-align: right">Keru</th></tr></thead><tbody>
+<tr><td style="text-align: left">wide_no_wrap_simple_few</td><td style="text-align: right">1,001</td><td style="text-align: right">0.2507 ms</td><td style="text-align: right">0.1921 ms</td><td style="text-align: right">0.2286 ms</td></tr>
+<tr><td style="text-align: left">wide_no_wrap_simple_many</td><td style="text-align: right">100,001</td><td style="text-align: right">48.6879 ms</td><td style="text-align: right">28.5494 ms</td><td style="text-align: right">51.0822 ms</td></tr>
+<tr><td style="text-align: left">flex_expand_equal_weights</td><td style="text-align: right">15,001</td><td style="text-align: right">5.3728 ms</td><td style="text-align: right">4.8458 ms</td><td style="text-align: right">7.4206 ms</td></tr>
+<tr><td style="text-align: left">nested_vertical_stack</td><td style="text-align: right">10,001</td><td style="text-align: right">3.7867 ms</td><td style="text-align: right">2.9214 ms</td><td style="text-align: right">3.6699 ms</td></tr>
+<tr><td style="text-align: left">percentage_and_ratio</td><td style="text-align: right">10,001</td><td style="text-align: right">3.3133 ms</td><td style="text-align: right">2.9622 ms</td><td style="text-align: right">3.1916 ms</td></tr>
+<tr><td style="text-align: left">expand_with_max_constraint</td><td style="text-align: right">3,001</td><td style="text-align: right">1.6222 ms</td><td style="text-align: right">1.6559 ms</td><td style="text-align: right">1.0274 ms</td></tr>
+<tr><td style="text-align: left">fit_nesting</td><td style="text-align: right">101,111</td><td style="text-align: right">110.9751 ms</td><td style="text-align: right">60.0391 ms</td><td style="text-align: right">98.3934 ms</td></tr>
+</tbody></table>
+<h3 id="time-per-node">Time per node</h3>
+<table><thead><tr><th style="text-align: left">Benchmark</th><th style="text-align: right">Nodes</th><th style="text-align: right">Taffy</th><th style="text-align: right">Yoga</th><th style="text-align: right">Keru</th></tr></thead><tbody>
+<tr><td style="text-align: left">wide_no_wrap_simple_few</td><td style="text-align: right">1,001</td><td style="text-align: right">250.45 ns</td><td style="text-align: right">191.91 ns</td><td style="text-align: right">228.40 ns</td></tr>
+<tr><td style="text-align: left">wide_no_wrap_simple_many</td><td style="text-align: right">100,001</td><td style="text-align: right">486.87 ns</td><td style="text-align: right">285.49 ns</td><td style="text-align: right">510.82 ns</td></tr>
+<tr><td style="text-align: left">flex_expand_equal_weights</td><td style="text-align: right">15,001</td><td style="text-align: right">358.16 ns</td><td style="text-align: right">323.03 ns</td><td style="text-align: right">494.68 ns</td></tr>
+<tr><td style="text-align: left">nested_vertical_stack</td><td style="text-align: right">10,001</td><td style="text-align: right">378.63 ns</td><td style="text-align: right">292.11 ns</td><td style="text-align: right">366.96 ns</td></tr>
+<tr><td style="text-align: left">percentage_and_ratio</td><td style="text-align: right">10,001</td><td style="text-align: right">331.30 ns</td><td style="text-align: right">296.19 ns</td><td style="text-align: right">319.13 ns</td></tr>
+<tr><td style="text-align: left">expand_with_max_constraint</td><td style="text-align: right">3,001</td><td style="text-align: right">540.55 ns</td><td style="text-align: right">551.78 ns</td><td style="text-align: right">342.36 ns</td></tr>
+<tr><td style="text-align: left">fit_nesting</td><td style="text-align: right">101,111</td><td style="text-align: right">1097.56 ns</td><td style="text-align: right">593.79 ns</td><td style="text-align: right">973.12 ns</td></tr>
+</tbody></table>
+<p>If you clicked through to the blog post with the benchmarks, you might have noticed that the numbers for PanGui and for Clay are a full order of magnitude better than any of these! However, Clay uses a significantly less expressive algorithm, and PanGui is currently closed source, so there's not a lot to learn from the comparison.</p>
+<p>Still, while being on par with Taffy and Yoga is "okay", it's true we should probably have higher standards for a new algorithm not encumbered by strict compliance with the CSS spec and written from scratch in the age of data-oriented programming. In the future, I'll try to see what an optimized version of the Keru algorithm can do.</p>
+<h2 id="thanks-for-reading">Thanks For Reading</h2>
+<p>That's all that I have to say about layout for now.</p>
+<p>This layout system is one of the most interesting things I've worked on, but it's a fairly small and recent addition to Keru, which aims to be a full featured and usable GUI library.</p>
+<p>If you are interested, check out <a rel="external" href="https://github.com/kekelp/keru/">Keru's Github page</a>, or the other posts in this blog.</p>
+
+</article>
+
+    </main>
+    <script>
+        var DARK = 'dark', LIGHT = 'light';
+        var root = document.documentElement;
+        var toggle = document.getElementById('theme-toggle');
+        var sun = document.getElementById('icon-sun');
+        var moon = document.getElementById('icon-moon');
+
+        function isDark() {
+            var t = root.getAttribute('data-theme');
+            return t ? t === DARK : window.matchMedia('(prefers-color-scheme: dark)').matches;
+        }
+        function showIcon(dark) {
+            sun.style.display = dark ? 'block' : 'none';
+            moon.style.display = dark ? 'none' : 'block';
+        }
+        function apply(dark) {
+            root.setAttribute('data-theme', dark ? DARK : LIGHT);
+            showIcon(dark);
+            toggle.setAttribute('aria-pressed', dark ? 'true' : 'false');
+            try { localStorage.setItem('theme', dark ? DARK : LIGHT); } catch (e) {}
+        }
+
+        showIcon(isDark());
+        toggle.setAttribute('aria-pressed', isDark() ? 'true' : 'false');
+        toggle.addEventListener('click', function () {
+            apply(!isDark());
+        });
+    </script>
+</body>
+</html>
