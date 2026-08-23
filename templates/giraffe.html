@@ -3,15 +3,12 @@
 {% block title %}{{ page.title }} — {{ config.title | default(value="Blog") }}{% endblock %}
 
 {% block content %}
-{% set src = load_data(path="giraffe_src.html", format="plain") %}
+{% set src = load_data(path="extra/giraffe_src.html", format="plain") %}
 <h1>{{ page.title }}</h1>
 <p> This is an attempt to implement the <a href="{{ get_url(path='@/blog/layout/index.md') }}">giraffe layout</a> in CSS. The giraffe stays at zero width.</p>
 
 <div class="split">
 
-    <div class="pane render">
-        {{ src | safe }}
-    </div>
 
     <div class="pane code">
 {{ ("```html
@@ -19,6 +16,9 @@
 ```") | markdown | safe }}
     </div>
 
+    <div class="pane render">
+        {{ src | safe }}
+    </div>
 
 
 </div>
