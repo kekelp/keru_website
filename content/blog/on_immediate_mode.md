@@ -60,7 +60,7 @@ I measured this in the [`ten_thousand.rs`](https://github.com/kekelp/keru/blob/m
 
 Ten thousand isn't a big number for a computer, but it's already way above what a 2D GUI should realistically have on screen at the same time. In reality, a list like this should probably be virtualized regardless of the cost of redeclaring it. Offscreen nodes can be skipped when rendering, but they still take up memory and usually still need to be layouted.
 
-In most realistic cases, we can expect the redeclaration to take less than a hundred µs for a simple GUI, and maybe one or two ms for a complicated one. Nobody will mind.
+In most realistic cases, we can expect the redeclaration to take a few hundred µs or less for a simple GUI, and maybe one or two ms for a very complicated one. Nobody will mind.
 
 
 ## Further Optimization?
@@ -69,7 +69,7 @@ Still, some applications might have a legitimate need for ten thousand unvirtual
 
 Most of the time is spent moving around and comparing the `Node` structs, which aren't small.
 
-If we were willing to go back and change the interface for the sake of performance, we also could merge the `add()` function and the `Node` creation like this:
+If we were willing to go back and change the interface for the sake of performance, we could merge the `add()` function and the `Node` creation like this:
 
 ```rust
 ui.add_button()
@@ -80,7 +80,7 @@ ui.add_button()
     })
 ```
 
-In this case, the property builders themselves could reach directly into the node storage and compare and diff the single field, which would likely be much cheaper.
+In this case, the property builders themselves could reach directly into the node storage and compare the single field, which would likely be much cheaper.
 
 But I think that using free stack variables for nodes is a significant ergonomic advantage, because it allows the builder code to be separated from the `nest()` calls that define the tree structure, it allows the programmer to organize them into constants or associated values, to return them from functions, and so on.
 
@@ -88,12 +88,12 @@ The more general point here is that it's always more flexible and more natural t
 
 Another possible performance improvement could be to represent `Node`s as a list of changes over a default value rather than a full struct with values for every field. But that wouldn't be quite as natural, and in current day Rust there's no ergonomic way to use many variable length objects without making a lot of allocations on the global heap (although these would be the sort of short-lived ones that allocators are actually fairly good at dealing with).
 
-If we *don't* want to make any changes to the interface, but we still want it to run a bit faster, there's probably some space for some more mundane internal optimizations as well. Especially for the cache efficiency of the internal `Node` structs, which are quite big. I'll get to it at some point.
+If we *don't* want to make any changes to the interface, but we still want it to run a bit faster, there's probably space for some more mundane internal optimizations as well. Definitely the cache efficiency of the internal node structs could definitely be improved, and maybe we could tweak the external `Node` so that the comparison can use some SIMD. I'll get to it at some point.
 
 
 ## The Cost of Everything Else
 
-Let's not forget about all the other work that the GUI has to do every time something does happen:
+Let's not forget about all the other work that the GUI has to do every time anything happens:
 
 - recompute the layout,
 - update animations,
