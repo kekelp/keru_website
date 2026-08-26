@@ -189,22 +189,17 @@ Dedicated immediate-mode fans can even fall back to the familiar `if ui.add(BUTT
 
 ## Consequences on Architecture
 
-Whether a library embraces or denies them, callbacks are probably the best example of how the choices that we make about the interface end up deeply influencing the internal architecture.
+Callbacks are probably the best example of how the choices that we make about the interface end up deeply influencing the internal architecture, and vice versa.
 
 When using callbacks, the extra state management complexity usually ends up leaking into the interface, either in the form of the user having to manually clone their state handles, or in other ways.
 
 On the other hand, not using callbacks means that the library has to be ready to re-execute all or most of the user's redeclaration code whenever something important happens, so that all the event-response code written inline can be executed as well.
 
-This means that as long as we remain convinced that we don't want callbacks, we're basically already ruled out a truly "reactive" architecture, of the kind that tracks dependencies between state variables and GUI elements in order to do minimal updates without redeclaring.
+This means that as long as we remain convinced that we don't want callbacks, we're basically already ruled out a truly "reactive" architecture, of the kind that tracks dependencies between state variables and GUI elements in order to do minimal updates without redeclaring anything.
 
 This doesn't mean that we have to become "immediate mode": we're just redeclaring the GUI and updating it, not rebuilding it from scratch. It doesn't mean that we have to do that "on every frame", either: nodes annotate the types of events that they care about, so if a click lands on a node that isn't listening to it, or if the user is just moving the mouse around or scrolling, the `Ui` knows that nothing needs to be rerun.
 
-
 I should note that proponents of reactive GUI don't always insist on fully automatic dependency tracking. It's also common to implement some limited level of reactivity on top of a mostly redeclaration-based system, where the library simply skips re-executing some of the code if it can tell that it can. This sort of thing is not incompatible with Keru's model: there are some experimental ways to do this, though I think it's still not worth the effort in most cases.
-
-Hopefully these arguments about the interface are enough to justify Keru's decision of not embracing reactivity. In the future I will write a new blog post going through how the redeclaration code is implemented in Keru and how efficient it is.
-
-In the meantime, it helps to remember that many existing libraries like Iced are mostly non-reactive and rerun the whole GUI declaration code on every interaction, and it doesn't seem to be a problem. The code just happens to look different enough from the dreaded "immediate mode" that it doesn't raise suspicion.
 
 ## The `Component` Trait
 
