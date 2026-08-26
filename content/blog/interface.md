@@ -79,7 +79,7 @@ The example passes it into `run_example_loop` for convenience, but if we were us
 
 Keru also has a `Component` trait that allows self-contained containers to hold their own local state, among other things.
 
-The `Component` trait will be explained in a later section, but it's fairly niche and still somewhat experimental. Local state can be very useful in some cases, but most programs should usually keep most of their state centralized.
+The `Component` trait will be explained in a later section, but it should be seen as a niche tool. Local state can be very useful in some cases, but most programs should usually keep most of their state centralized.
 
 
 ## Node Keys
@@ -90,7 +90,7 @@ The first line in `update_ui()` is a tiny proc macro that defines a unique compi
 #[node_key] const INCREASE: NodeKey;
 ```
 
-Internally, the `#[node_key]` macro just rolls a random `u64` and uses it to fill in the value of the `const`. 
+Internally, the `#[node_key]` macro just rolls a random `u64` and uses it to fill in the value of the `const`.
 
 Rust proc macros get a lot of hate, but they work great here. In some other libraries, users have to create IDs themselves with unique strings.
 
@@ -104,7 +104,8 @@ for i in 0..100 {
 }
 ```
 
-<!-- For more advanced uses, we can also scope them so that they are only unique within a reusable component, using the `Ui::key_scope()` method or the experimental `Component` trait. -->
+`#[node_key]` was originally written with a random number instead of a deterministic hash because proc macros couldn't know anything about the caller's file path until very recently. Nowadays there's a deterministic version of it that can be imported as `keru::deterministic_keys::node_key`. However, it's still not the default, because it can lead to collisions in complicated cases: for example, if `#[node_key]` was wrapped in another macro.
+
 
 ## Nodes
 
