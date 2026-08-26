@@ -18,7 +18,7 @@ My impression is that especially in the Rust community, immediate-mode GUI is no
 
 As always, we have to look at the other side. If the cost of rerunning the declaration code on every event was truly paralyzing, we'd have to just get over it and use some sort of reactive system anyway.
 
-For this reason, this post will go into some detail into how the redeclaration code is implemented and how expensive it is to run it. 
+For this reason, this post will go into some detail on how the redeclaration code is implemented and how expensive it is to run it. 
 
 
 For reference, this is what Keru's redeclaration code looks like:
@@ -47,7 +47,7 @@ What is this code actually doing, and how expensive is it?
 
 Many of the people who assume that code like that is expensive probably have something like React in mind, where the redeclaration code would create a brand new tree from scratch to represent the desired state of the GUI, and then compare it to the retained one. Both trees probably also happened to be sprawling pointer jungles on the Javascript garbage-collected heap.
 
-There's definitely more reasonable ways to go about this. In Keru, whenever we `add()` a node, the function reaches into the node storage, and it either finds the old version of the node or creates it from scratch. If it finds an old node, it marks it as "fresh", updates its parameters, and updates its parent link to put it in the desired position within the tree.
+There are definitely more reasonable ways to go about this. In Keru, whenever we `add()` a node, the function reaches into the node storage, and it either finds the old version of the node or creates it from scratch. If it finds an old node, it marks it as "fresh", updates its parameters, and updates its parent link to put it in the desired position within the tree.
 
 Then, the properties of the new node are immediately diffed against the old one. If we find a difference, we can schedule any relayouts, rerenders, or transition animations if needed.
 

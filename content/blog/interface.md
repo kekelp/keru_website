@@ -3,7 +3,7 @@ title = "Looking for the Perfect GUI Library Interface"
 date = 2026-08-19
 +++
 
-This is a blog post about the interface in Keru, my experimental GUI library for Rust. It will show how the code for writing GUIs with Keru looks like, explain some of the goals and the implementation constraints that ended up determining its shape, and show some of the ways in which the syntax ends up influencing the internal architecture.
+This is a blog post about the interface in Keru, my experimental GUI library for Rust. It will show what the code for writing GUIs with Keru looks like, explain some of the goals and the implementation constraints that ended up determining its shape, and show some of the ways in which the syntax ends up influencing the internal architecture.
 
 It might seem shallow to focus on the syntax, but in practice it's a big part of what determines whether a library is easy to use and to learn, whether it's flexible enough to be used in different kinds of projects, whether it's smooth or painful to integrate it into a bigger program, and so on.
 
@@ -79,7 +79,7 @@ The example passes it into `run_example_loop` for convenience, but if we were us
 
 Keru also has a `Component` trait that allows self-contained containers to hold their own local state, among other things.
 
-The `Component` trait will be explained in a later section, but it should be seen as a niche tool. Local state can be very useful in some cases, but most programs should usually keep most of their state centralized.
+The trait will be explained in a later section, but it should be seen as a niche tool. Local state can be very useful in some cases, but most programs should usually keep most of their state centralized.
 
 
 ## Node Keys
@@ -195,7 +195,7 @@ When using callbacks, the extra state management complexity usually ends up leak
 
 On the other hand, not using callbacks means that the library has to be ready to re-execute all or most of the user's redeclaration code whenever something important happens, so that all the event-response code written inline can be executed as well.
 
-This means that as long as we remain convinced that we don't want callbacks, we're basically already ruled out a truly "reactive" architecture, of the kind that tracks dependencies between state variables and GUI elements in order to do minimal updates without redeclaring anything.
+This means that as long as we remain convinced that we don't want callbacks, we've basically already ruled out a truly "reactive" architecture, of the kind that tracks dependencies between state variables and GUI elements in order to do minimal updates without redeclaring anything.
 
 This doesn't mean that we have to become "immediate mode": we're just redeclaring the GUI and updating it, not rebuilding it from scratch. It doesn't mean that we have to do that "on every frame", either: nodes annotate the types of events that they care about, so if a click lands on a node that isn't listening to it, or if the user is just moving the mouse around or scrolling, the `Ui` knows that nothing needs to be rerun.
 

@@ -18,7 +18,7 @@ The enlightening example is this innocent-looking giraffe layout, taken from [th
 
 In this layout, the multi-line paragraph fits to the width of the single-line label. The giraffe fits the height of the whole right section, and its width is half of its height, to preserve the aspect ratio of the bitmap image. As it turns out, most algorithms can't solve this.
 
-The first thing I did was trying to implement the `clay` algorithm in Keru, and I think I understood its algorithm well enough to conclude that it couldn't possibly solve this case.
+The first thing I did was try to implement the `clay` algorithm in Keru, and I think I understood its algorithm well enough to conclude that it couldn't possibly solve this case.
 
 I also did some experiments with CSS, and couldn't get it to solve it either. Because of how complicated CSS is, it's still entirely possible that a way to solve it exists, and I just didn't find the magic word that would make it happen. What I can say with certainty is that writing it in <a href="/css-giraffe/" target="_blank" rel="noopener">the obvious way</a> doesn't work: the giraffe stays at zero width.
  
@@ -29,7 +29,7 @@ However, it's not uncommon to hear people complaining about the unfriendliness o
 
 My conclusion for now is that these limitations are due to the fact that most layout algorithms are implemented through a series of top-down or bottom-up tree traversals, and the dependencies in the giraffe example just don't line up with them. As the original giraffe blog post notes, solving an arbitrary dependency graph by doing multiple passes until everything is solved leads to exponential complexity, so the algorithms cut some corners. Sometimes doing a lot of memoization can help, but sometimes they just give up.
 
-To understand what was going on, I tried drawing the giraffe on paper and asking myself what would an ideal layout engine do to solve this layout properly.
+To understand what was going on, I tried drawing the giraffe on paper and asking myself what an ideal layout engine would do to solve this layout properly.
 
 <figure>
     <img src="giraffe_paper.png" alt="Working out the giraffe's dependency chain on paper.">
@@ -70,7 +70,7 @@ The goal is to build a graph of dependencies, then solve it. In the simplest ver
 
     - Solve the node's size. The initial elements can be solved trivially without dependencies.
 
-    - Go through the solved node's list of dependants, and decrease the dependency count of that element by 1. If it reaches zero, push that element to the back of the solver queue.
+    - Go through the solved node's list of dependents, and decrease the dependency count of that element by 1. If it reaches zero, push that element to the back of the solver queue.
 
 - Continue until the solver queue is empty.
 
@@ -96,16 +96,16 @@ The real weakness of the graph algorithm as described above is that it can make 
 
 An algorithm that fills all of them with best-effort values won't have any good numbers for the two cycling nodes, but it might have a good guess for the container, based just on the plain node. The basic graph solver, on the other hand, will stop without solving the container, because it has dependencies that were never solved.
 
-It's not hard to extend the graph algorithm to fix this, though. In short, we need to keep track of the elements that did get some useful input flowing into them, but whose dependency count never dropped to zero. After we're done with the main solver queue, we can take the first of these elements, we collapse its unsolved dependencies to zero or to a fallback size, push them back onto the queue, and resume solving. Loop until there are no more of these "partially unsolvable" elements.
+It's not hard to extend the graph algorithm to fix this, though. In short, we need to keep track of the elements that did get some useful input flowing into them, but whose dependency count never dropped to zero. After we're done with the main solver queue, we can take the first of these elements, collapse its unsolved dependencies to zero or to a fallback size, push them back onto the queue, and resume solving. Loop until there are no more of these "partially unsolvable" elements.
 
 In this way, we can make sure that cycles don't mess up more of the layout than they have to.
 
 
 The last observation is that most real occurrences of cycles come from fairly simple localized cycles, rather than long complicated chains.
 
-So, we can reduce the occurrence of cycles by just forcing a hard-coded resolution to some of the more common cycle-like patterns. As an obvious example, we can determine a node that has `AspectRatio` on both axes to immediately resolve to `(100, 100)`, before even entering into the graph. We can also log a warning.
+So, we can reduce the occurrence of cycles by just forcing a hard-coded resolution to some of the more common cycle-like patterns. As an obvious example, we can decide that a node with `AspectRatio` on both axes should immediately resolve to `(100, 100)`, before even entering into the graph. We can also log a warning.
 
-A more ambitious one is deciding that when a `Fit` node has only `Fill` children with no minimum sizes, the children can "punch through" the parent and fill the whole space of its *grand*parent. This is consistent with the idea of `FitContent` acting as a neutral "margin" around its content, but I'll need to experiment with this for a while to see if it leads to too many surprising results.
+A more ambitious one is deciding that when a `Fit` node has only `Fill` children with no minimum sizes, the children can "punch through" the parent and fill the whole space of its *grand*parent. This is consistent with the idea of `Fit` acting as a neutral "margin" around its content, but I'll need to experiment with this for a while to see if it leads to too many surprising results.
 
 
 ## Different kinds of sizes
