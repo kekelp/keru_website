@@ -5,7 +5,7 @@ date = 2026-08-22
 
 In [the previous post about Keru's interface](@/blog/interface.md), I argued that a simple and minimal interface is probably the most important goal for a GUI library, and that this goal pretty much forces us to adopt a model at least superficially similar to "immediate mode", where we often have to rerun all or most of the user's GUI declaration code.
 
-My impression is that especially in the Rust community, immediate-mode GUI is not very popular, so I felt like I had to defend this choice. Without going into the details again, here's a summary of the arguments: 
+My impression is that especially in the Rust community, immediate-mode GUI is not very popular, so I felt like I had to defend this choice. Here's a summary of the arguments from that post: 
 
 
 - It's not actually immediate mode: there's a `Ui` struct that retains the whole state of the GUI at all times. The declaration code just updates this retained state.
@@ -14,10 +14,9 @@ My impression is that especially in the Rust community, immediate-mode GUI is no
 
 - There are many libraries that rerun the declaration code quite often without attracting the same sort of skepticism, such as Iced. This may be a sign that some people are opposed to specific flaws of some naive immediate mode libraries rather than to the whole idea of rerunning declarative code.
 
-- When people argue for avoiding even the price of redeclaration, they usually propose a "reactive" system, but these are usually very complicated with plenty of disadvantages beyond just the interface. Especially in non-web libraries, it seems that it's often implemented as a partial optimization layer over a redeclare-everything model.
+- When people argue for avoiding even the price of redeclaration, they usually propose a "reactive" system, but these are usually very complicated with plenty of disadvantages beyond just the interface.
 
-
-These are all good arguments, but as always, we have to look at the other side. If the cost of rerunning the declaration code on every event was truly paralyzing, we'd have to just get over it and use some sort of reactive system anyway.
+As always, we have to look at the other side. If the cost of rerunning the declaration code on every event was truly paralyzing, we'd have to just get over it and use some sort of reactive system anyway.
 
 For this reason, this post will go into some detail into how the redeclaration code is implemented and how expensive it is to run it. 
 
@@ -88,7 +87,7 @@ The more general point here is that it's always more flexible and more natural t
 
 Another possible performance improvement could be to represent `Node`s as a list of changes over a default value rather than a full struct with values for every field. But that wouldn't be quite as natural, and in current day Rust there's no ergonomic way to use many variable length objects without making a lot of allocations on the global heap (although these would be the sort of short-lived ones that allocators are actually fairly good at dealing with).
 
-If we *don't* want to make any changes to the interface, but we still want it to run a bit faster, there's probably space for some more mundane internal optimizations as well. Definitely the cache efficiency of the internal node structs could definitely be improved, and maybe we could tweak the external `Node` so that the comparison can use some SIMD. I'll get to it at some point.
+If we *don't* want to make any changes to the interface, but we still want it to run a bit faster, there's probably space for some more mundane internal optimizations as well. The cache efficiency of the internal node structs could definitely be improved, and maybe we could tweak the external `Node` so that the comparison can take advantage of vectorization. I'll get to it at some point.
 
 
 ## The Cost of Everything Else

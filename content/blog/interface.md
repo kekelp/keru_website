@@ -47,16 +47,13 @@ fn update_ui(state: &mut State, ui: &mut Ui) {
 
 fn main() {
     let state = State { count: 0 };
-    // Use a wrapper that sets up a winit/wgpu loop,
-    // and runs our `update_ui()` on every update.
-    // This is just for examples!
-    // Keru is meant to be used as part of a user-controlled winit/wgpu loop.
-    // Setting up a winit/wgpu loop is less than 100 lines of boilerplate.
     example_window_loop::run_example_loop(state, update_ui);
 }
 ```
 
-Looking at the syntax, you might be reminded of "immediate-mode" GUI. However, this is not an immediate-mode library, at least not in the sense in which most people use the term. The `Ui` struct retains the node tree and the whole state of the GUI across frames.
+In `main()`, the `run_example_loop()` helper sets up a `winit`/`wgpu` loop and calls our `update_ui()` on every update. This is just a helper for examples and quick experimentation. Keru is meant to be used as part of a user-controlled winit/wgpu loop. Setting up a winit/wgpu loop is less than 100 lines of boilerplate.
+
+Looking at the code, you might be reminded of "immediate-mode" GUI. However, this is not an immediate-mode library, at least not in the sense in which most people use the term. The `Ui` struct retains the node tree and the whole state of the GUI across frames.
 
 When the `update_ui()` function runs, it redeclares the desired state of the whole GUI. While this happens, the `Ui` updates the retained state to match the declared one, and schedules relayouts or repaints as needed.
 
@@ -78,7 +75,7 @@ fn main() {
 
 As promised, the program's state is a plain Rust struct that we create on our stack and fully own.
 
-The example passes it into `run_example_loop` for convenience, but if we were using a custom winit/wgpu loop, we could truly do whatever we want with it.
+The example passes it into `run_example_loop` for convenience, but if we were using a custom `winit`/`wgpu` loop, we could truly do whatever we want with it.
 
 Keru also has a `Component` trait that allows self-contained containers to hold their own local state, among other things.
 
@@ -193,29 +190,30 @@ Dedicated immediate-mode fans can even fall back to the familiar `if ui.add(BUTT
 
 Whether a library embraces or denies them, callbacks are probably the best example of how the choices that we make about the interface end up deeply influencing the internal architecture.
 
-When using callbacks, all the extra complexity in managing the state usually ends up leaking into the interface, either in the form of the user having to manually clone their state handles, or in other ways.
+When using callbacks, the extra state management complexity usually ends up leaking into the interface, either in the form of the user having to manually clone their state handles, or in other ways.
 
 On the other hand, not using callbacks means that the library has to be ready to re-execute all or most of the user's redeclaration code whenever something important happens, so that all the event-response code written inline can be executed as well.
 
-This doesn't mean that we have to become "immediate mode": we're just redeclaring the GUI and updating it, not rebuilding it from scratch. It doesn't mean that we have to do that "on every frame" either: nodes annotate the types of events that they care about, so if a click lands on a node that doesn't care about it, or if the user is just moving the mouse around or scrolling, the Ui knows that nothing needs to be rerun.
+This means that as long as we remain convinced that we don't want callbacks, we're basically already ruled out a truly "reactive" architecture, of the kind that tracks dependencies between state variables and GUI elements in order to do minimal updates without redeclaring.
 
-For this reason, we can also spare ourselves the headache of considering a truly reactive architecture, where the GUI would detect the dependencies of GUI elements on individual state variables and update them without a full redeclaration step. This would be very complicated, and it would have deep consequences of its own for the user's ability to manage their state freely and to write the GUI code in a simple and flexible way. But such an architecture would almost surely require callbacks anyway, so as long as we remain convinced that callbacks are already incompatible with our goals, we can discard it with this simpler argument.
+This doesn't mean that we have to become "immediate mode": we're just redeclaring the GUI and updating it, not rebuilding it from scratch. It doesn't mean that we have to do that "on every frame", either: nodes annotate the types of events that they care about, so if a click lands on a node that isn't listening to it, or if the user is just moving the mouse around or scrolling, the `Ui` knows that nothing needs to be rerun.
 
-That being said, proponents of reactive GUI don't always insist on fully automatic dependency tracking. It's also common to implement some partial reactivity on top of a mostly redeclaration-based system, where the user annotates a part of the code and possibly does some manual change-tracking, then the library simply skips re-executing it if it can. This sort of thing is not incompatible with Keru's model. The library has some experimental ways to do this, even though I think it's generally still not worth the effort. 
 
-Hopefully these arguments about the interface are enough to justify Keru's decision of not embracing reactivity. In the future I will write a new blog post analyzing this topic in more detail, going through how the declaration code, the diffing and the updates to the retained state are implemented in Keru and how efficient they are.
+I should note that proponents of reactive GUI don't always insist on fully automatic dependency tracking. It's also common to implement some limited level of reactivity on top of a mostly redeclaration-based system, where the library simply skips re-executing some of the code if it can tell that it can. This sort of thing is not incompatible with Keru's model: there are some experimental ways to do this, though I think it's still not worth the effort in most cases.
+
+Hopefully these arguments about the interface are enough to justify Keru's decision of not embracing reactivity. In the future I will write a new blog post going through how the redeclaration code is implemented in Keru and how efficient it is.
 
 In the meantime, it helps to remember that many existing libraries like Iced are mostly non-reactive and rerun the whole GUI declaration code on every interaction, and it doesn't seem to be a problem. The code just happens to look different enough from the dreaded "immediate mode" that it doesn't raise suspicion.
 
 ## The `Component` Trait
 
-The minimal example above shows the basic primitives of the library, and it's possible to create fairly complicated GUIs by composing them with regular functions, variables and constants. However, there's also an experimental `Component` trait that's meant to streamline the sort of composition that's common for self-contained GUI widgets, such as a reusable color picker or rich text edit box.
+The minimal example above shows the basic primitives of the library, and it's possible to create fairly complicated GUIs by composing them with regular functions, variables and constants. However, there's also a `Component` trait that's meant to streamline the sort of composition that's common for self-contained GUI widgets, such as a reusable color picker or rich text edit box.
 
 Besides helping with composition, `Component`s can also hold their own local state. For example, a color picker might not want to logically "own" the color that it sets, but it makes sense for it to own some specific local settings about the color space that it's using or its shape. That way, the user can add multiple color pickers each with its own independent settings without worrying about cluttering the main program state.
 
 This ability to hold local state is the only feature that's currently only accessible through `Component`s, and not when composing nodes manually.
 
-I won't go into too much detail here, because components are still experimental and there's a lot of different ways to use them, but here's a short example:
+I won't go into too much detail here, because components are still somewhat experimental and there's a lot of different ways to use them, but here's a short example:
 
 ```rust
 pub struct StatefulCounter {

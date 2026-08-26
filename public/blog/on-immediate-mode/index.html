@@ -44,7 +44,7 @@
         <time datetime="2026-08-22">2026-08-22</time>
     </header>
     <p>In <a href="https://kekelp.github.io/keru/blog/interface/">the previous post about Keru's interface</a>, I argued that a simple and minimal interface is probably the most important goal for a GUI library, and that this goal pretty much forces us to adopt a model at least superficially similar to "immediate mode", where we often have to rerun all or most of the user's GUI declaration code.</p>
-<p>My impression is that especially in the Rust community, immediate-mode GUI is not very popular, so I felt like I had to defend this choice. Without going into the details again, here's a summary of the arguments:</p>
+<p>My impression is that especially in the Rust community, immediate-mode GUI is not very popular, so I felt like I had to defend this choice. Here's a summary of the arguments from that post:</p>
 <ul>
 <li>
 <p>It's not actually immediate mode: there's a <code>Ui</code> struct that retains the whole state of the GUI at all times. The declaration code just updates this retained state.</p>
@@ -56,10 +56,10 @@
 <p>There are many libraries that rerun the declaration code quite often without attracting the same sort of skepticism, such as Iced. This may be a sign that some people are opposed to specific flaws of some naive immediate mode libraries rather than to the whole idea of rerunning declarative code.</p>
 </li>
 <li>
-<p>When people argue for avoiding even the price of redeclaration, they usually propose a "reactive" system, but these are usually very complicated with plenty of disadvantages beyond just the interface. Especially in non-web libraries, it seems that it's often implemented as a partial optimization layer over a redeclare-everything model.</p>
+<p>When people argue for avoiding even the price of redeclaration, they usually propose a "reactive" system, but these are usually very complicated with plenty of disadvantages beyond just the interface.</p>
 </li>
 </ul>
-<p>These are all good arguments, but as always, we have to look at the other side. If the cost of rerunning the declaration code on every event was truly paralyzing, we'd have to just get over it and use some sort of reactive system anyway.</p>
+<p>As always, we have to look at the other side. If the cost of rerunning the declaration code on every event was truly paralyzing, we'd have to just get over it and use some sort of reactive system anyway.</p>
 <p>For this reason, this post will go into some detail into how the redeclaration code is implemented and how expensive it is to run it.</p>
 <p>For reference, this is what Keru's redeclaration code looks like:</p>
 <pre class="giallo" style="color-scheme: light dark; color: light-dark(#24292E, #E1E4E8); background-color: light-dark(#FFFFFF, #24292E);" ><code data-lang="rust"><span class="giallo-l"><span style="color: light-dark(#D73A49, #F97583);">fn</span><span style="color: light-dark(#6F42C1, #B392F0);"> update_ui</span><span>(</span><span>state</span><span style="color: light-dark(#D73A49, #F97583);">:</span><span style="color: light-dark(#D73A49, #F97583);"> &amp;</span><span style="color: light-dark(#D73A49, #F97583);">mut</span><span style="color: light-dark(#6F42C1, #B392F0);"> State</span><span>,</span><span> ui</span><span style="color: light-dark(#D73A49, #F97583);">:</span><span style="color: light-dark(#D73A49, #F97583);"> &amp;</span><span style="color: light-dark(#D73A49, #F97583);">mut</span><span style="color: light-dark(#6F42C1, #B392F0);"> Ui</span><span>)</span><span> {</span></span>
@@ -102,7 +102,7 @@
 <p>But I think that using free stack variables for nodes is a significant ergonomic advantage, because it allows the builder code to be separated from the <code>nest()</code> calls that define the tree structure, it allows the programmer to organize them into constants or associated values, to return them from functions, and so on.</p>
 <p>The more general point here is that it's always more flexible and more natural to map the concepts of a library to the basic primitives of the language, when it is possible. It's much better for a <code>Node</code> to be a struct than an abstract concept that emerges out of a series of function calls, and is only materialized somewhere deep inside the library outside of the user's view.</p>
 <p>Another possible performance improvement could be to represent <code>Node</code>s as a list of changes over a default value rather than a full struct with values for every field. But that wouldn't be quite as natural, and in current day Rust there's no ergonomic way to use many variable length objects without making a lot of allocations on the global heap (although these would be the sort of short-lived ones that allocators are actually fairly good at dealing with).</p>
-<p>If we <em>don't</em> want to make any changes to the interface, but we still want it to run a bit faster, there's probably space for some more mundane internal optimizations as well. Definitely the cache efficiency of the internal node structs could definitely be improved, and maybe we could tweak the external <code>Node</code> so that the comparison can use some SIMD. I'll get to it at some point.</p>
+<p>If we <em>don't</em> want to make any changes to the interface, but we still want it to run a bit faster, there's probably space for some more mundane internal optimizations as well. The cache efficiency of the internal node structs could definitely be improved, and maybe we could tweak the external <code>Node</code> so that the comparison can take advantage of vectorization. I'll get to it at some point.</p>
 <h2 id="the-cost-of-everything-else">The Cost of Everything Else</h2>
 <p>Let's not forget about all the other work that the GUI has to do every time anything happens:</p>
 <ul>
