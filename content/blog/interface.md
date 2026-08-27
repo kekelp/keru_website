@@ -250,7 +250,7 @@ Unlike local state, this feature can be used when composing nodes "manually" usi
 
 ## Thanks for Reading
 
-As you can see, a lot of thought went into the user-facing interface and syntax. However, it doesn't stop there: there's a real working library under it, though it's not 100% finished yet.
+As you can see, a lot of thought went into the user-facing interface and syntax. However, it doesn't stop there: there's a real working library under it, though it's not finished yet.
 
 If you would like to learn more and see what Keru looks like beyond the basic "Hello world" code, you can check out [Keru's github page](https://github.com/kekelp/keru/) and explore the examples, which show advanced layout and grids, animations, drag and drop, canvas drawing, components with local state, optional imperative tree manipulation, integration with custom wgpu rendering, etc.
 
