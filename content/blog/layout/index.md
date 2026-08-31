@@ -16,7 +16,7 @@ The enlightening example is this innocent-looking giraffe layout, taken from [th
     <figcaption>You can ignore the dog, as it doesn't participate in the layout in any interesting way.</figcaption>
 </figure>
 
-In this layout, the multi-line paragraph fits to the width of the single-line label. The giraffe fits the height of the whole right section, and its width is half of its height, to preserve the aspect ratio of the bitmap image. As it turns out, most algorithms can't solve this.
+In this layout, the multi-line paragraph fits to the width of the single-line label. The giraffe fits the height of the whole right section, and its width is half of its height, to preserve the aspect ratio of the bitmap image. As it turns out, most algorithms struggle with this.
 
 The first thing I did was try to implement the `clay` algorithm in Keru, and I think I understood its algorithm well enough to conclude that it couldn't possibly solve this case.
 
