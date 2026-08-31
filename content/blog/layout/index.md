@@ -1,6 +1,6 @@
 +++
 title = "A New GUI Layout Algorithm?"
-date = 2026-08-21
+date = 2026-08-22
 +++
 
 This blog post is about the experimental layout system in Keru, my experimental GUI library for Rust. It uses a fairly unorthodox layout algorithm based on explicit dependencies between nodes.

@@ -33,7 +33,7 @@ fn update_ui(state: &mut State, ui: &mut Ui) {
         .text("Increase")
         .key(INCREASE);
 
-    // Place the nodes into the tree and define the layout
+    // Add the nodes to the tree
     ui.add(V_STACK).nest(|| {
         ui.add(increase_button);
         ui.add(LABEL.text(&state.count.to_string()));
@@ -238,6 +238,9 @@ impl Component for StatefulCounter {
     }
 }
 
+// When building the ui:
+let counter = StatefulCounter { color: Color::RED };
+ui.add_component(counter);
 ```
 
 The `State` associated type defines the type of the component's local state. It has a `Default` bound, so that the `Ui` can initialize it when the component is first added.
@@ -252,7 +255,7 @@ Unlike local state, this feature can be used when composing nodes "manually" usi
 
 As you can see, a lot of thought went into the user-facing interface and syntax. However, it doesn't stop there: there's a real working library under it, though it's not finished yet.
 
-If you would like to learn more and see what Keru looks like beyond the basic "Hello world" code, you can check out [Keru's github page](https://github.com/kekelp/keru/) and explore the examples, which show advanced layout and grids, animations, drag and drop, canvas drawing, components with local state, optional imperative tree manipulation, integration with custom wgpu rendering, etc.
+If you would like to learn more and see what Keru looks like beyond the basic "Hello world" code, you can check out [Keru's github page](https://github.com/kekelp/keru/) and explore the examples, which show advanced layout and grids, animations, drag and drop, canvas drawing, optional imperative tree manipulation, integration with custom wgpu rendering, etc.
 
 Keru is a pure Rust library and uses `winit` and `wgpu` for cross-platform support, so trying it out should be relatively easy on most systems.
 
