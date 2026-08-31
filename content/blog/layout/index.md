@@ -20,8 +20,9 @@ In this layout, the multi-line paragraph fits to the width of the single-line la
 
 The first thing I did was try to implement the `clay` algorithm in Keru, and I think I understood its algorithm well enough to conclude that it couldn't possibly solve this case.
 
-I also did some experiments with CSS, and couldn't get it to solve it either. Because of how complicated CSS is, it's still entirely possible that a way to solve it exists, and I just didn't find the magic word that would make it happen. What I can say with certainty is that writing it in <a href="/css-giraffe/" target="_blank" rel="noopener">the obvious way</a> doesn't work: the giraffe stays at zero width.
+I also did some experiments with CSS, and couldn't get it to solve it either. Because of how complicated CSS is, it's still entirely possible that a way to solve it exists, and I just didn't find the magic word that would make it happen. What I can say with certainty is that writing it in [the obvious way](@/css_giraffe.md) doesn't work: the giraffe stays at zero width.
  
+[Edit: as it turns out, [there is a way to do it in CSS after all](@/css_giraffe_working.md), using vertical writing mode for the giraffe. But it's not very intuitive.  Thanks Nico Burns for pointing this out.]
 
 To be clear, I don't think this is necessarily a huge problem: especially in the case of `clay` there's nothing wrong with sticking to a simpler and faster algorithm if it works for the intended application. There's plenty of GUI programs that work great without any advanced layouts of this kind and don't run into any of these issues.
 

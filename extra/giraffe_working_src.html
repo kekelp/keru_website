@@ -1,0 +1,40 @@
+<style>
+  .hstack {
+    display: inline-block;
+    writing-mode: vertical-lr;
+    background: hotpink;
+    padding: 10px;
+  }
+
+  .giraffe {
+    writing-mode: vertical-lr;
+    inline-size: 0;
+    min-inline-size: 100%;
+    aspect-ratio: 0.5;
+    margin-right: 10px;
+    background: linear-gradient(0deg, red, blue);
+  }
+
+  .vstack {
+    writing-mode: horizontal-tb;
+    width: fit-content;
+  }
+
+  .label { color: white; white-space: nowrap; font-size: 34px; }
+
+  .paragraph {
+    width: 0;
+    min-width: 100%;
+    text-align: justify;
+    font-size: 20px;
+    color: white;
+  }
+</style>
+
+<div class="hstack">
+  <div class="giraffe"></div>
+  <div class="vstack">
+    <div class="label">Single line text</div>
+    <div class="paragraph">Wrapping text with a lot of text that overflows. Wrapping text with a lot of text that overflows.</div>
+  </div>
+</div>

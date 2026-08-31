@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page.title }} - {{ config.title | default(value="Blog") }}{% endblock %}
+
+{% block content %}
+{% set src = load_data(path="extra/giraffe_working_src.html", format="plain") %}
+<h1>{{ page.title }}</h1>
+
+<div class="split">
+
+    <div class="pane render">
+        {{ src | safe }}
+    </div>
+
+    <div class="pane code">
+{{ ("```html
+" ~ src ~ "
+```") | markdown | safe }}
+    </div>
+
+</div>
+
+{% endblock %}
