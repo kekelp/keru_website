@@ -237,15 +237,19 @@ impl Component for StatefulCounter {
         }
     }
 }
+```
+The `State` associated type defines the type of the component's state.
 
-// When building the ui:
+When building the GUI, the same component can be used with local state, or passing a state reference from outside:
+```rust
 let counter = StatefulCounter { color: Color::RED };
 ui.add_component(counter);
+ui.add_component_with_state(counter, &mut i32);
 ```
 
-The `State` associated type defines the type of the component's local state. It has a `Default` bound, so that the `Ui` can initialize it when the component is first added.
+To call `ui.add_component(counter)` without an explicit state reference, `State` must be `Default`, so that the `Ui` can initialize it when the component is first added. Then, it will be deallocated when the component is eventually removed.
 
-There are some other associated types that can be used in more advanced components. Hopefully a future version of Rust will allow the trait to declare default values for associated types, and users won't have to write the void types explicitly.
+There are some other associated types that can be used in more advanced components. Hopefully a future version of Rust will allow traits to declare default values for associated types, and users won't have to write the `()` types explicitly.
 
 Note also that the `INCREASE` key refers to a node that's unique within the component but not in the whole program, since the component is meant to be added multiple times. This works because each component gets its own unique "key scope".
 
