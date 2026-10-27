@@ -285,6 +285,13 @@ pre code {
         left: auto;
         transform: none;
         gap: 0.5rem;
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 22rem) {
+    .video-wall {
+        grid-template-columns: 1fr;
     }
 }
 
