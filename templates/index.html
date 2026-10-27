@@ -22,7 +22,7 @@
     <figure class="video-cell">
         <video
             class="video-tile"
-            src="{{ get_url(path='videos/' ~ name ~ '.mp4') }}"
+            src="{{ get_url(path='videos/' ~ name ~ '.mp4') }}#t=0.001"
             loop
             muted
             playsinline
@@ -37,6 +37,7 @@
 
 <script>
     var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    var noHover = window.matchMedia('(hover: none)');
     var playing = null;
 
     function autoPlay(v) { if (v.paused) { v._auto = true; v.play(); } }
@@ -44,6 +45,9 @@
 
     document.querySelectorAll('.video-tile').forEach(function (v) {
         if (v.tagName !== 'VIDEO') return;
+
+        // Touch devices have no hover, so show the controls all the time.
+        if (noHover.matches) { v.setAttribute('controls', ''); return; }
 
         v.addEventListener('play', function () {
             if (v._auto) { v._auto = false; return; }
