@@ -137,7 +137,7 @@ The `Ui` is the struct that holds the full retained state of the whole GUI. When
 
 Since `increase_button` is a plain value struct, we can keep it separate from this part of the code, so that the tree structure remains understandable at a glance. Of course, nothing is stopping us from inlining it.
 
-The `nest` closure doesn't have a `|ui|` parameter, and uses a thread-local value to keep track of the current parent. Many `egui` users are probably familiar with the kind of borrow errors that arise when the user needs to continuously reborrow the `ui` on each level of nesting. A plain `||` closure avoids these errors entirely.
+The `nest` closure doesn't have a `|ui|` parameter, and uses a thread-local value to keep track of the current parent. Many `egui` users are probably familiar with the kind of borrow errors that arise when the user needs to continuously reborrow the `ui` on each level of nesting. Errors like that aren't hard to work around for an experienced user, but they can sure be confusing for beginners. A plain `||` closure avoids them entirely.
 
 That said, using a closure still comes with some downsides. For example, this doesn't work:  
 
