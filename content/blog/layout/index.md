@@ -3,6 +3,8 @@ title = "A New GUI Layout Algorithm?"
 date = 2026-08-22
 +++
 
+>Note: this post describes an older and slower version of the algorithm. See [this newer blog post](@/blog/layout2/index.md) for a new version.
+
 This blog post is about the experimental layout system in Keru, my experimental GUI library for Rust. It uses a fairly unorthodox layout algorithm based on explicit dependencies between nodes.
 
 When I first started writing Keru, I actually didn't have any strong opinions about layout, and I implemented a very simple system inspired by some blog posts describing the one in SwiftUI (it was 2024, so you couldn't just ask AI to write it). Unsurprisingly, it had some limitations, and I returned to layout some time later.
