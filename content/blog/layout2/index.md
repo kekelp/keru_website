@@ -109,11 +109,11 @@ The common wisdom just seems to be that layout algorithms are implemented with a
 
 One exception is the old Cassowary constraint solver. It seems to have a bit of a bad reputation as a historical oddity compared to the modern approaches, so it's probably fair to not consider it part of the current-day common wisdom. And in any case, its constraint system didn't look much like the dependency graph algorithm in `keru_layout` either.
 
-Obviously there's no single answer for why things ended up like this, but it leads me to an interesting consideration about how the way in which the data layout of the tree may affect the choice of algorithms.
+Obviously there's no single answer for why things ended up like this, but it leads me to a consideration about how the way in which the data layout of the tree may affect the choice of algorithms.
 
 In the dark ages of programming, there was a common idea that the way to build a tree of nodes was to put each node in a separate heap allocation, and have the node's parent hold the pointer to it, because it "owns" it.
 
-This means that a node is literally only accessible from its parent. In this situation, it's not surprising that most algorithms end up looking like a sequence of tree-order traversals!
+This means that a node is literally only accessible from its parent. In this situation, it's not surprising that most algorithms would end up looking like a series of tree-order traversals!
 
 In the style of programming that I use and that seems prevalent in the modern age, on the other hand, all the UI nodes are stored in a top-level container like a slotmap, slab, hashmap, or even a plain Vec in simpler cases. Then, nodes can refer to each other using non-owning `NodeID`s, which are indices or keys into the container.
 
