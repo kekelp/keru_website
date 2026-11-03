@@ -22,7 +22,7 @@ To be clear, I don't think this is necessarily a huge problem: especially in the
 
 However, it's not uncommon to hear people complaining about the unfriendliness of layout systems. If it was possible to find a more general solution that worked in a more consistent and predictable way without surprises, it might go a long way towards making the system feel more reliable and user-friendly.
 
-My interpretation of these limitations is that they are due to the fact that most layout algorithms are implemented through a series of top-down or bottom-up tree traversals, and the dependencies in the giraffe example just don't line up with them. As the original giraffe blog post notes, solving an arbitrary dependency graph by doing multiple passes until everything is solved leads to exponential complexity, so the algorithms cut some corners. Unless we can convince CSS that it might break Mongolian text if it doesn't honor our layout exactly, sometimes it will just give up.
+My interpretation of these limitations is that they come from the fact that most layout algorithms work by traversing or recursing on the real UI tree, jumping from parent to children or vice-versa. But the dependencies in the giraffe example just don't line up with the tree. As the original giraffe blog post notes, solving an arbitrary dependency graph by doing multiple passes until everything is solved leads to exponential complexity, so the algorithms cut some corners. Unless we can convince CSS that it might break Mongolian text if it doesn't honor our layout exactly, sometimes it will just give up.
 
 To understand what was going on, I tried drawing the giraffe on paper and asking myself what an ideal layout engine would do to solve this layout properly.
 
@@ -94,12 +94,12 @@ While other libraries have their strengths and their weaknesses, `keru_layout` i
 
 The library also supports incremental relayout for non-structural changes to cycle-free layouts. The algorithm is a bit different than the one used for the full solve, but the dependency graph approach is still very useful. In short, from a list of changes to the UI elements' numerical values, the algorithm starts by solving each of them, pushing all of its depend**ents** to a solve queue (rather than its dependencies), then continues until the queue is empty. To avoid duplicated work in the case where multiple changes "flow" into the same node, the queue is organized with one bucket per "level", or the longest distance in the dependency graph from a dependency-less "source" node. Then, the solver always solves the dirty nodes with a lower level before the ones with a higher level.
 
-While it's a nice algorithm, in practice the case for incremental relayout gets much weaker when the full layout is already quite fast.
+While it's a nice algorithm, in practice the case for incremental relayout gets weaker when the full layout is already quite fast.
 There's a lot more integration work required to get incremental relayout working compared to the simple full relayout case, and the surface area for integration bugs increases by a lot when the user is expected to report all changes to individual UI elements to the layout library rather than simply letting it read its tree and solve it.
 
 Even ignoring the integration complexity, the only case when incremental relayout really sounds attractive is in programs where the users are doing a lot of dragging and resizing, which forces a relayout on every display frame at 60 or 120+ Hz. Still, even in this case it's likely that the work saved by incremental relayout would be overshadowed by other per-frame costs such as rendering, unless those are optimized for incremental changes as well.
 
-As a general principle, software is slow and complicated enough that for now it's probably a good idea to first try the optimizations that *remove* complexity, and only consider the ones that *add* complexity in a second step if we're still unhappy with how fast it's going.
+As a general principle, software is slow and complicated enough that for now it's probably a good idea to first try the optimizations that *remove* complexity, and only consider the ones that *add* complexity in a second step, if we're still unhappy with how fast it's going.
 
 
 ## Meta: Data layout matters?
@@ -107,7 +107,7 @@ As a general principle, software is slow and complicated enough that for now it'
 `keru_layout` is an experimental library that hasn't gone through any real-world testing, so there might still be many good reasons why you shouldn't do your layout like this after all. However, I was still surprised that I couldn't find anyone discussing an approach like this, even in blog posts or internet discussions.
 The common wisdom just seems to be that layout algorithms are implemented with a series of tree-order traversals, usually with some memoization.
 
-One exception is the old Cassowary constraint solver. It seems to have a bit of a bad reputation as an over-engineered historical oddity compared to the modern approaches, so it's probably fair to not consider it part of the current-day common wisdom. And in any case, its constraint system didn't look much like the dependency graph algorithm in `keru_layout` either.
+One exception is the old Cassowary constraint solver. It seems to have a bit of a bad reputation as a historical oddity compared to the modern approaches, so it's probably fair to not consider it part of the current-day common wisdom. And in any case, its constraint system didn't look much like the dependency graph algorithm in `keru_layout` either.
 
 Obviously there's no single answer for why things ended up like this, but it leads me to an interesting consideration about how the way in which the data layout of the tree may affect the choice of algorithms.
 
@@ -115,11 +115,11 @@ In the dark ages of programming, there was a common idea that the way to build a
 
 This means that a node is literally only accessible from its parent. In this situation, it's not surprising that most algorithms end up looking like a sequence of tree-order traversals!
 
-In the style of programming that I use and that seems prevalent in the modern age, on the other hand, all nodes are stored in a top-level container like a slotmap, slab, hashmap, or even a plain Vec in simpler cases. Then, nodes can refer to each other using non-owning `NodeID`s, which are indices or keys into the container.
+In the style of programming that I use and that seems prevalent in the modern age, on the other hand, all the UI nodes are stored in a top-level container like a slotmap, slab, hashmap, or even a plain Vec in simpler cases. Then, nodes can refer to each other using non-owning `NodeID`s, which are indices or keys into the container.
 
-This is what made it natural for me to model dependencies as simple value structs that contain `NodeID`s, and to access and solve the nodes in arbitrary order when going through the dependencies. While the newer depth-first search algorithm doesn't really materialize these structs anymore, it's how I originally came up with this approach, and of course it still requires the solver to be able to jump to any dependency in the middle of the recursion, whether it's a child or a parent.
+This is what made it natural for me to model dependencies as simple value structs that contain `NodeID`s, and to access and solve the nodes in arbitrary order when going through the dependencies. While the newer algorithm doesn't really materialize these structs anymore, it's how I originally came up with this approach, and of course it still requires the solver to be able to jump to any dependency in the middle of the recursion, not just on children.
 
-More generally, the idea is that it's useful for the programmer to always have a full bird's eye view on the whole state of the program, and to always have the freedom to access any of it. This is extremely helpful when experimenting with new algorithms or when debugging.
+More generally, the idea is that it's useful for the programmer to always have a full bird's eye view on the whole state of the program, and to always have the freedom to access any of it directly. This is extremely helpful when experimenting with new algorithms or when debugging.
 
 There are many other factors in this kind of decision, most importantly the impact on performance of using many separate allocations, and the loss of RAII on the other side. But this is an example that shows how a slotmap-based layout can actually improve the ergonomics, flexibility and understandability of the code as well.
 
