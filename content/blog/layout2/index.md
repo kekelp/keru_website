@@ -41,14 +41,14 @@ It turns out that in this case there's a pretty straightforward dependency chain
 
 ## The Algorithm
 
-To avoid the problem and to avoid the performance hit, the solution is to use an algorithm that traverses this dependency chain in that order, directly.
+The solution is to come up with an algorithm that traverses this dependency chain and solves the sizes in that order, directly.
 
-Conceptually, these layout dependencies form a graph. Simplifying a bit for now, every element in the graph is a `(NodeID, Axis)` pair, and each dependency is an edge in the graph: `{ dependent: (NodeID, Axis), depends_on: (NodeID, Axis) }`.
+Conceptually, these layout dependencies form a graph. Simplifying a bit for now, every graph node is a `(NodeID, Axis)` pair, and each dependency is an edge in the graph: `{ dependent: (NodeID, Axis), depends_on: (NodeID, Axis) }`.
 
-The previous version of the algorithm would go through all nodes of the tree and note down all the edges. For example, a node with `size_x = Fill` would push `{ dependent: (node_id, X), depends_on: (parent_id, X) }`,. If it had `size_x = FitContent`, it would push `{ dependent: (node_id, X), depends_on: (child_id, X) }` for each of its children.
+The previous version of the algorithm would go through all UI nodes in the tree and write down all the edges. For example, a node with `size_x = Fill` would push `{ dependent: (node_id, X), depends_on: (parent_id, X) }`,. If it had `size_x = FitContent`, it would push `{ dependent: (node_id, X), depends_on: (child_id, X) }` for each of its children.
 Then, it would solve the graph using what I later found out was called Kahn's algorithm: push all nodes with no dependencies in a queue and solve them. For each solved node, see if any of the nodes depending on it dropped down to zero unsolved dependencies: if yes, push it to the queue as well, and continue solving the queued nodes until everything is solved.
 
-While this wasn't the fastest way to do it, it worked, and having an explicit list of edges was quite useful for debugging: for example, the edges could be displayed as a real graph using standard tools.
+While this wasn't the fastest way to do it, it worked, and having an explicit list of edges was quite useful for debugging. For example, the edges could be displayed as a real graph using standard tools like `graphviz`.
 
 <figure>
     <img src="giraffe_solved.png" alt="Giraffe solved in Keru.">
@@ -71,12 +71,12 @@ Of course there's nothing new about this approach either, you can find it descri
 
 ## Cycles
 
-With the depth-first search algorithm, dealing with cycles is also quite straightforward. When we first visit a slot, we can set an `IN_PROGRESS` flag on it before recursing on its dependencies. Then, if we visit a slot that already has the `IN_PROGRESS` flag, that means that it's in a cycle. Instead of silently giving the user a broken or inconsistent layout, we can give them a loud warning with an accurate list of all nodes that were stuck in a cycle. Of course, we can still pick a fallback value for the node in the meantime.
+With the depth-first search algorithm, dealing with cycles is also quite straightforward. When we first visit an node, we can set an `IN_PROGRESS` flag on it before recursing on its dependencies. Then, if we visit an node that already has the `IN_PROGRESS` flag, that means that it's in a cycle. Instead of silently giving the user a broken or inconsistent layout, we can give them a loud warning with an accurate list of all nodes that were stuck in a cycle. Of course, we can still pick a fallback value for the node in the meantime.
 
 
 ## Different kinds of sizes
 
-The next step in sophistication for the layout algorithm is to support maximum and minimum sizes. To do this, we expand the graph: instead of a `(NodeID, Axis)` pair, every graph node is a triplet of `(NodeID, Axis, SizeType)`, where `SizeType` can be `Min`, `Max`, `Regular` or `Final`. Nodes with a min and max size on any axis will get all four elements, and the `Final` element will depend on all the other three.
+The next step in sophistication for the layout algorithm is to support maximum and minimum sizes. To do this, we expand the graph: instead of a `(NodeID, Axis)` pair, every graph node is a triplet of `(NodeID, Axis, SizeType)`, where `SizeType` can be `Min`, `Max`, `Regular` or `Final`. UI nodes with a min and max size on any axis will get all four graph nodes, and the `Final` node will depend on all the other three.
 
 When min and max sizes combine with some of the most complex cases of stack containers, this actually ends up complicating the picture quite a bit. Eventually, we also have to add some other kinds of more abstract `SizeTypes`, representing some partial calculations that the stacks have to do.
 
@@ -92,7 +92,7 @@ While other libraries have their strengths and their weaknesses, `keru_layout` i
 
 ## Incremental Relayout
 
-The library also supports incremental relayout for non-structural changes to cycle-free layouts. The algorithm is a bit different than the one used for the full solve, but the dependency graph approach is still very useful. In short, from a list of changes to the node's numerical values, the algorithm starts by solving each of them, pushing all of its depend**ents** to a solve queue (rather than its dependencies), then continues until the queue is empty. To avoid duplicated work in the case where multiple changes "flow" into the same element, the queue is organized with one bucket per "level", or the longest distance in the dependency graph from a dependency-less "source" node. Then, the solver always solves the dirty nodes with a lower level before the ones with a higher level.
+The library also supports incremental relayout for non-structural changes to cycle-free layouts. The algorithm is a bit different than the one used for the full solve, but the dependency graph approach is still very useful. In short, from a list of changes to the node's numerical values, the algorithm starts by solving each of them, pushing all of its depend**ents** to a solve queue (rather than its dependencies), then continues until the queue is empty. To avoid duplicated work in the case where multiple changes "flow" into the same node, the queue is organized with one bucket per "level", or the longest distance in the dependency graph from a dependency-less "source" node. Then, the solver always solves the dirty nodes with a lower level before the ones with a higher level.
 
 While it's a nice algorithm, in practice the case for incremental relayout gets much weaker when the full layout is already quite fast.
 There's a lot more integration work required to get incremental relayout working compared to the simple full relayout case, and the surface area for integration bugs increases by a lot when the user is expected to report all changes to individual nodes to the layout library rather than simply letting it read its tree and solve it.
