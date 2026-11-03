@@ -46,8 +46,7 @@ The solution is to come up with an algorithm that traverses this dependency chai
 Conceptually, these layout dependencies form a graph. Simplifying a bit for now, every graph node is a `(NodeID, Axis)` pair, and each dependency is an edge in the graph: `{ dependent: (NodeID, Axis), depends_on: (NodeID, Axis) }`.
 
 The previous version of the algorithm would go through all UI elements in the tree and write down all the edges. For example, a UI element with `size_x = Fill` would push `{ dependent: (node_id, X), depends_on: (parent_id, X) }`,. If it had `size_x = FitContent`, it would push `{ dependent: (node_id, X), depends_on: (child_id, X) }` for each of its children.
-Then, it would solve the graph using what I later found out was called Kahn's algorithm: push all nodes with no dependencies in a queue and solve them. For each solved node, see if any of the nodes depending on it dropped down to zero unsolved dependencies: if yes, push it to the queue as well, and continue solving the queued nodes until everything is solved.
-
+Then, it would solve the graph using what I later found out was called [Kahn's algorithm](https://en.wikipedia.org/wiki/Topological_sorting#Kahn's_algorithm).
 While this wasn't the fastest way to do it, it worked, and having an explicit list of edges was quite useful for debugging. For example, the edges could be displayed as a real graph using standard tools like `graphviz`.
 
 <figure>
@@ -100,28 +99,6 @@ There's a lot more integration work required to get incremental relayout working
 Even ignoring the integration complexity, the only case when incremental relayout really sounds attractive is in programs where the users are doing a lot of dragging and resizing, which forces a relayout on every display frame at 60 or 120+ Hz. Still, even in this case it's likely that the work saved by incremental relayout would be overshadowed by other per-frame costs such as rendering, unless those are optimized for incremental changes as well.
 
 As a general principle, software is slow and complicated enough that for now it's probably a good idea to first try the optimizations that *remove* complexity, and only consider the ones that *add* complexity in a second step, if we're still unhappy with how fast it's going.
-
-
-## Meta: Data layout matters?
-
-`keru_layout` is an experimental library that hasn't gone through any real-world testing, so there might still be many good reasons why you shouldn't do your layout like this after all. However, I was still surprised that I couldn't find anyone discussing an approach like this, even in blog posts or internet discussions.
-The common wisdom just seems to be that layout algorithms are implemented with a series of tree-order traversals, usually with some memoization.
-
-One exception is the old Cassowary constraint solver. It seems to have a bit of a bad reputation as a historical oddity compared to the modern approaches, so it's probably fair to not consider it part of the current-day common wisdom. And in any case, its constraint system didn't look much like the dependency graph algorithm in `keru_layout` either.
-
-Obviously there's no single answer for why things ended up like this, but it leads me to a consideration about how the way in which the data layout of the tree may affect the choice of algorithms.
-
-In the dark ages of programming, there was a common idea that the way to build a tree of nodes was to put each node in a separate heap allocation, and have the node's parent hold the pointer to it, because it "owns" it.
-
-This means that a node is literally only accessible from its parent. In this situation, it's not surprising that most algorithms would end up looking like a series of tree-order traversals!
-
-In the style of programming that I use and that seems prevalent in the modern age, on the other hand, all the UI nodes are stored in a top-level container like a slotmap, slab, hashmap, or even a plain Vec in simpler cases. Then, nodes can refer to each other using non-owning `NodeID`s, which are indices or keys into the container.
-
-This is what made it natural for me to model dependencies as simple value structs that contain `NodeID`s, and to access and solve the nodes in arbitrary order when going through the dependencies. While the newer algorithm doesn't really materialize these structs anymore, it's how I originally came up with this approach, and of course it still requires the solver to be able to jump to any dependency in the middle of the recursion, not just on children.
-
-More generally, the idea is that it's useful for the programmer to always have a full bird's eye view on the whole state of the program, and to always have the freedom to access any of it directly. This is extremely helpful when experimenting with new algorithms or when debugging.
-
-There are many other factors in this kind of decision, most importantly the impact on performance of using many separate allocations, and the loss of RAII on the other side. But this is an example that shows how a slotmap-based layout can actually improve the ergonomics, flexibility and understandability of the code as well.
 
 
 ## Thanks For Reading
