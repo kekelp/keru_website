@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>A New GUI Layout Algorithm - Keru</title>
+    <link rel="stylesheet" href="https://kekelp.github.io/keru/style.css">
+    <script>
+        try {
+            var t = localStorage.getItem('theme');
+            if (t) document.documentElement.setAttribute('data-theme', t);
+        } catch (e) {}
+    </script>
+</head>
+<body>
+    <nav>
+        <a href="https://kekelp.github.io/keru">Keru</a>
+        <a href="https://kekelp.github.io/keru/blog">Blog</a>
+        <a href="https://kekelp.github.io/keru/about">About</a>
+        <a href="/keru/live_docs/keru/index.html">Docs</a>
+        <a href="https://github.com/kekelp/keru"> Code </a>
+
+        <button
+            id="theme-toggle"
+            class="theme-toggle"
+            aria-label="Toggle dark mode"
+            aria-pressed="false"
+        >
+            <svg id="icon-sun" class="theme-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="4"></circle>
+                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
+            </svg>
+            <svg id="icon-moon" class="theme-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+        </button>
+    </nav>
+    <main>
+        
+<article>
+    <header class="post-header">
+        <h1>A New GUI Layout Algorithm</h1>
+        <time datetime="2026-11-03">2026-11-03</time>
+    </header>
+    <p>Earlier this year I wrote a blog post about an experimental layout algorithm that I was trying for Keru, my GUI library. After some more experimentation, I found a way to rewrite the algorithm that keeps all of the good properties of the previous one, but is also much faster. According to <a rel="external" href="https://github.com/kekelp/arewelayoutyet">a benchmark</a> that I forked from <a rel="external" href="https://github.com/marc2332/arewelayoutyet">marc2332</a>, it's now one of the fastest layout libraries out there. This time, I made a separate <code>keru_layout</code> crate for it, and I'm rewriting the blog post to keep the background explanation but describe the new faster algorithm, include a link to the benchmark data, and talk a bit about incremental relayout.</p>
+<p>Traditionally, GUI layout was more of an art than a science: a layout library would offer some layout primitives that the user can compose, but when it comes to solving them into real rectangle coordinates, it usually makes no real promises. It's sort of common to do a fairly half-hearted attempt, give out an inconsistent answer, and declare that particular layout unsupported.</p>
+<p>The enlightening example is this innocent-looking giraffe layout, taken from <a rel="external" href="https://mortoray.com/why_ui_layout_calculations_are_slow/">this blog post by Edaqa Mortoray</a>:</p>
+<figure>
+    <img src="giraffe_original.png" alt="Edaqa Mortoray's giraffe layout.">
+    <figcaption>You can ignore the dog, as it doesn't participate in the layout in any interesting way.</figcaption>
+</figure>
+<p>In this layout, the multi-line paragraph fits to the width of the single-line label. The giraffe fills the height of the whole right section, and its width is half of its height, to preserve the aspect ratio of the bitmap image. As it turns out, most algorithms struggle with this.</p>
+<p>For example, the <code>clay</code> algorithm can't solve this case. If you write it in <a href="https://kekelp.github.io/keru/css-giraffe/">the obvious way</a>, CSS won't solve it properly either: the giraffe stays at zero width. With enough nudging, like setting <code>writing-mode: vertical-lr</code> on the giraffe and on the h-stack, you can <a href="https://kekelp.github.io/keru/css-giraffe-working/">convince the CSS engine that this really matters for correctness</a>, and it will solve it properly (thanks Nico Burns for figuring this out). But <code>vertical-*</code> is the writing mode used for vertically-aligned text runs, like in Mongolian and traditional Chinese and Japanese: it's fair to say that most users wouldn't think of resorting to this to get an <code>aspect-ratio</code> to work properly.</p>
+<p>To be clear, I don't think this is necessarily a huge problem: especially in the case of <code>clay</code> there's nothing wrong with sticking to a simpler and faster algorithm if it works for the intended application. There's plenty of GUI programs that work great without any advanced layouts of this kind and don't run into any of these issues.</p>
+<p>However, it's not uncommon to hear people complaining about the unfriendliness of layout systems. If it was possible to find a more general solution that worked in a more consistent and predictable way without surprises, it might go a long way towards making the system feel more reliable and user-friendly.</p>
+<p>My interpretation of these limitations is that they come from the fact that most layout algorithms work by traversing or recursing on the real UI tree, jumping from parent to children or vice-versa. But the dependencies in the giraffe example just don't line up with the tree. As the original giraffe blog post notes, solving an arbitrary dependency graph by doing multiple passes until everything is solved leads to exponential complexity, so the algorithms cut some corners. Unless we can convince CSS that it might break Mongolian text if it doesn't honor our layout exactly, sometimes it will just give up.</p>
+<p>To understand what was going on, I tried drawing the giraffe on paper and asking myself what an ideal layout engine would do to solve this layout properly.</p>
+<figure>
+    <img src="giraffe_paper.png" alt="Working out the giraffe's dependency chain on paper.">
+    <figcaption>Again, you can ignore the dog.</figcaption>
+</figure>
+<p>It turns out that in this case there's a pretty straightforward dependency chain:</p>
+<ul>
+<li>The single-line text determines the width of the v-stack on the right.</li>
+<li>The wrapping text fills the width of the v-stack, and determines its height by wrapping.</li>
+<li>The heights of the single-line text and the wrapping text sum up to determine the height of the h-stack.</li>
+<li>The giraffe fills the height of the h-stack, and determines its width by aspect-ratio.</li>
+<li>The widths of the giraffe and the v-stack sum up to determine the width of the outer panel.</li>
+</ul>
+<h2 id="the-algorithm">The Algorithm</h2>
+<p>The solution is to come up with an algorithm that traverses this dependency chain and solves the sizes in that order, directly.</p>
+<p>Conceptually, these layout dependencies form a graph. Simplifying a bit for now, every graph node is a <code>(NodeID, Axis)</code> pair, and each dependency is an edge in the graph: <code>{ dependent: (NodeID, Axis), depends_on: (NodeID, Axis) }</code>.</p>
+<p>The previous version of the algorithm would go through all UI elements in the tree and write down all the edges. For example, a UI element with <code>size_x = Fill</code> would push <code>{ dependent: (node_id, X), depends_on: (parent_id, X) }</code>,. If it had <code>size_x = FitContent</code>, it would push <code>{ dependent: (node_id, X), depends_on: (child_id, X) }</code> for each of its children.
+Then, it would solve the graph using what I later found out was called <a rel="external" href="https://en.wikipedia.org/wiki/Topological_sorting#Kahn&#x27;s_algorithm">Kahn's algorithm</a>.
+While this wasn't the fastest way to do it, it worked, and having an explicit list of edges was quite useful for debugging. For example, the edges could be displayed as a real graph using standard tools like <code>graphviz</code>.</p>
+<figure>
+    <img src="giraffe_solved.png" alt="Giraffe solved in Keru.">
+    <figcaption>The giraffe layout solved with the original algorithm. The giraffe is replaced by a gradient, as I didn't have an aesthetically consistent giraffe picture. However, you can see that the gradient has the correct aspect ratio.</figcaption>
+</figure>
+<h2 id="the-fast-algorithm">The Fast Algorithm</h2>
+<p>It turns out that the fast version of this algorithm is even simpler than the explicit one.</p>
+<ol>
+<li>Go through all nodes in any order and call a <code>solve(node)</code> function to solve it.</li>
+<li>In <code>solve(node)</code>, first call <code>solve_all_dependencies(node)</code>.</li>
+<li>In <code>solve_all_dependencies(node)</code>, recursively call <code>solve(dependency)</code> for every unsolved <code>dependency</code> that <code>node</code> will have to read to compute its own layout.</li>
+<li>After the recursion, then calculate <code>node</code>'s own layout.</li>
+</ol>
+<p>That's it! This is enough to ensure that the algorithm will solve all the nodes in the correct dependency order. But in this way, there's no need for a separate pass that writes down the edges explicitly.</p>
+<p>Of course there's nothing new about this approach either, you can find it described on the <a rel="external" href="https://en.wikipedia.org/wiki/Topological_sorting#Depth-first_search">Wikipedia page on topological sorting in the "depth-first search" section,</a> right below the section on Kahn's algorithm. But sometimes just knowing about these things is not enough, you have to live it.</p>
+<h2 id="cycles">Cycles</h2>
+<p>With the depth-first search algorithm, dealing with cycles is also quite straightforward. When we first visit a node, we can set an <code>IN_PROGRESS</code> flag on it before recursing on its dependencies. Then, if we visit a node that already has the <code>IN_PROGRESS</code> flag, that means that it's in a cycle. Instead of silently giving the user a broken or inconsistent layout, we can give them a loud warning with an accurate list of all nodes that were stuck in a cycle. Of course, we can still pick a fallback value for the node in the meantime.</p>
+<h2 id="different-kinds-of-sizes">Different kinds of sizes</h2>
+<p>The next step in sophistication for the layout algorithm is to support maximum and minimum sizes. To do this, we expand the graph: instead of a <code>(NodeID, Axis)</code> pair, every graph node is a triplet of <code>(NodeID, Axis, SizeType)</code>, where <code>SizeType</code> can be <code>Min</code>, <code>Max</code>, <code>Regular</code> or <code>Final</code>. UI elements with a min and max size on any axis will get all four graph nodes, and the <code>Final</code> node will depend on all the other three.</p>
+<p>When min and max sizes combine with some of the most complex cases of stack containers, this actually ends up complicating the picture quite a bit. Eventually, we also have to add some other kinds of more abstract <code>SizeTypes</code>, representing some partial calculations that the stacks have to do.</p>
+<p>However, it turns out that the graph approach can deal with all of these complications, as long as we write down all the dependencies correctly. For this reason, I won't go into the details. If you are skeptical about this system's ability to solve any specific layout problem, let me know, and I'll try it.</p>
+<h2 id="performance">Performance</h2>
+<p>As mentioned before, <a rel="external" href="https://github.com/kekelp/arewelayoutyet">I added <code>keru_layout</code> to a benchmark from marc2332</a>. In this benchmark, <code>keru_layout</code> is the fastest or close to the fastest in all the categories that it supports.</p>
+<p>While other libraries have their strengths and their weaknesses, <code>keru_layout</code> is consistently fast in all cases. It's likely that this comes from an intrinsic advantage of the algorithm: the other libraries are probably faster when their top-down or bottom-up traversals of the UI tree happen to line up with the real structure of the dependency graph, and slower when the shapes don't match as well. By traversing the dependency graph directly, the new algorithm has more consistent performance across many different cases.</p>
+<h2 id="incremental-relayout">Incremental Relayout</h2>
+<p>The library also supports incremental relayout for non-structural changes to cycle-free layouts. The algorithm is a bit different than the one used for the full solve, but the dependency graph approach is still very useful. In short, from a list of changes to the UI elements' numerical values, the algorithm starts by solving each of them, pushing all of its depend<strong>ents</strong> to a solve queue (rather than its dependencies), then continues until the queue is empty. To avoid duplicated work in the case where multiple changes "flow" into the same node, the queue is organized with one bucket per "level", or the longest distance in the dependency graph from a dependency-less "source" node. Then, the solver always solves the dirty nodes with a lower level before the ones with a higher level.</p>
+<p>While it's a nice algorithm, in practice the case for incremental relayout gets weaker when the full layout is already quite fast.
+There's a lot more integration work required to get incremental relayout working compared to the simple full relayout case, and the surface area for integration bugs increases by a lot when the user is expected to report all changes to individual UI elements to the layout library rather than simply letting it read its tree and solve it.</p>
+<p>Even ignoring the integration complexity, the only case when incremental relayout really sounds attractive is in programs where the users are doing a lot of dragging and resizing, which forces a relayout on every display frame at 60 or 120+ Hz. Still, even in this case it's likely that the work saved by incremental relayout would be overshadowed by other per-frame costs such as rendering, unless those are optimized for incremental changes as well.</p>
+<p>As a general principle, software is slow and complicated enough that for now it's probably a good idea to first try the optimizations that <em>remove</em> complexity, and only consider the ones that <em>add</em> complexity in a second step, if we're still unhappy with how fast it's going.</p>
+<h2 id="thanks-for-reading">Thanks For Reading</h2>
+<p>This layout system is one of the most interesting things I've worked on, but it's a fairly small and recent addition to Keru, which aims to be a full featured and usable GUI library.</p>
+<p>If you are interested, check out <a rel="external" href="https://github.com/kekelp/keru/">Keru's Github page</a>, or the other posts in this blog.</p>
+
+</article>
+
+    </main>
+    <script>
+        var DARK = 'dark', LIGHT = 'light';
+        var root = document.documentElement;
+        var toggle = document.getElementById('theme-toggle');
+        var sun = document.getElementById('icon-sun');
+        var moon = document.getElementById('icon-moon');
+
+        function isDark() {
+            var t = root.getAttribute('data-theme');
+            return t ? t === DARK : window.matchMedia('(prefers-color-scheme: dark)').matches;
+        }
+        function showIcon(dark) {
+            sun.style.display = dark ? 'block' : 'none';
+            moon.style.display = dark ? 'none' : 'block';
+        }
+        function apply(dark) {
+            root.setAttribute('data-theme', dark ? DARK : LIGHT);
+            showIcon(dark);
+            toggle.setAttribute('aria-pressed', dark ? 'true' : 'false');
+            try { localStorage.setItem('theme', dark ? DARK : LIGHT); } catch (e) {}
+        }
+
+        showIcon(isDark());
+        toggle.setAttribute('aria-pressed', isDark() ? 'true' : 'false');
+        toggle.addEventListener('click', function () {
+            apply(!isDark());
+        });
+    </script>
+</body>
+</html>

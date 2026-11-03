@@ -42,7 +42,10 @@
         <h1>A New GUI Layout Algorithm?</h1>
         <time datetime="2026-08-22">2026-08-22</time>
     </header>
-    <p>This blog post is about the experimental layout system in Keru, my experimental GUI library for Rust. It uses a fairly unorthodox layout algorithm based on explicit dependencies between nodes.</p>
+    <blockquote>
+<p>Note: this post describes an older and slower version of the algorithm. See <a href="https://kekelp.github.io/keru/blog/layout2/">this newer blog post</a> for a new version.</p>
+</blockquote>
+<p>This blog post is about the experimental layout system in Keru, my experimental GUI library for Rust. It uses a fairly unorthodox layout algorithm based on explicit dependencies between nodes.</p>
 <p>When I first started writing Keru, I actually didn't have any strong opinions about layout, and I implemented a very simple system inspired by some blog posts describing the one in SwiftUI (it was 2024, so you couldn't just ask AI to write it). Unsurprisingly, it had some limitations, and I returned to layout some time later.</p>
 <p>This time, I finally learned that GUI layout is more of an art than a science: a layout library offers some layout primitives that the user can compose, but when it comes to solving them into real rectangle coordinates, it usually makes no real promises. It's sort of common to do a fairly half-hearted attempt, give out an inconsistent answer, and declare that particular layout unsupported.</p>
 <p>The enlightening example is this innocent-looking giraffe layout, taken from <a rel="external" href="https://mortoray.com/why_ui_layout_calculations_are_slow/">this blog post by Edaqa Mortoray</a>:</p>
