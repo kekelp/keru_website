@@ -3,7 +3,7 @@ title = "A New GUI Layout Algorithm"
 date = 2026-11-03
 +++
 
-Earlier this year I wrote a blog post about an experimental layout algorithm that I was trying for Keru, my GUI library. After some more experimentation, I found a way to rewrite the algorithm that keeps all of the good properties of the previous one, but is also much faster. According to [a benchmark](https://github.com/kekelp/arewelayoutyet) that I forked from [marc2332](https://github.com/marc2332/arewelayoutyet), it's now one of the fastest layout libraries out there.
+Earlier this year I wrote a blog post about an experimental layout algorithm that I was trying for Keru, my GUI library. After some more experimentation, I found a way to rewrite the algorithm that keeps all of the good properties of the previous one, but is also much faster. According to [a benchmark](https://kekelp.github.io/arewelayoutyet/) that I forked from [marc2332](https://github.com/marc2332/arewelayoutyet), it's now one of the fastest layout libraries out there.
 
 This time, I made a [separate crate for it](https://github.com/kekelp/keru_layout), and I'm rewriting the blog post to keep the background explanation but describe the new faster algorithm, include a link to the benchmark data, and talk a bit about incremental relayout.
 
@@ -92,7 +92,7 @@ However, it turns out that the graph approach can deal with all of these complic
 
 ## Performance
 
-As mentioned before, [I added `keru_layout` to a benchmark from marc2332](https://github.com/kekelp/arewelayoutyet). In this benchmark, `keru_layout` is the fastest or close to the fastest in all the categories that it supports.
+As mentioned before, [I added `keru_layout` to a benchmark from marc2332](https://kekelp.github.io/arewelayoutyet/). In this benchmark, `keru_layout` is the fastest or close to the fastest in all the categories that it supports.
 
 While other libraries have their strengths and their weaknesses, `keru_layout` is consistently fast in all cases. It's likely that this comes from an intrinsic advantage of the algorithm: the other libraries are probably faster when their top-down or bottom-up traversals of the UI tree happen to line up with the real structure of the dependency graph, and slower when the shapes don't match as well. By traversing the dependency graph directly, the new algorithm has more consistent performance across many different cases.
 
