@@ -61,7 +61,7 @@
     <img src="giraffe_paper.png" alt="Working out the giraffe's dependency chain on paper.">
     <figcaption>Again, you can ignore the dog.</figcaption>
 </figure>
-<p>It turns out that in this case there's a pretty straightforward dependency chain:</p>
+<p>It turns out that there's a pretty straightforward dependency chain:</p>
 <ul>
 <li>The single-line text determines the width of the v-stack on the right.</li>
 <li>The wrapping text fills the width of the v-stack, and determines its height by wrapping.</li>
@@ -71,21 +71,22 @@
 </ul>
 <h2 id="the-algorithm">The Algorithm</h2>
 <p>The solution is to come up with an algorithm that traverses this dependency chain and solves the sizes in that order, directly.</p>
-<p>Conceptually, these layout dependencies form a graph. Simplifying a bit for now, every graph node is a <code>(NodeID, Axis)</code> pair, and each dependency is an edge in the graph: <code>{ dependent: (NodeID, Axis), depends_on: (NodeID, Axis) }</code>.</p>
-<p>The previous version of the algorithm would go through all UI elements in the tree and write down all the edges. For example, a UI element with <code>size_x = Fill</code> would push <code>{ dependent: (node_id, X), depends_on: (parent_id, X) }</code>,. If it had <code>size_x = FitContent</code>, it would push <code>{ dependent: (node_id, X), depends_on: (child_id, X) }</code> for each of its children.
-Then, it would solve the graph using what I later found out was called <a rel="external" href="https://en.wikipedia.org/wiki/Topological_sorting#Kahn&#x27;s_algorithm">Kahn's algorithm</a>.
-While this wasn't the fastest way to do it, it worked, and having an explicit list of edges was quite useful for debugging. For example, the edges could be displayed as a real graph using standard tools like <code>graphviz</code>.</p>
+<p>Conceptually, these layout dependencies form a graph. Simplifying a bit for now, every graph node is a <code>(NodeID, Axis)</code> pair, and each dependency is an edge in the graph:</p>
+<p><code>{ dependent: (NodeID, Axis), depends_on: (NodeID, Axis) }</code>.</p>
+<p>The previous version of the algorithm would go through all UI elements in the tree and write down all the edges. For example, a UI element with <code>size_x = Fill</code> would push a dependency on the X size of its parent, or if it had <code>size_x = FitContent</code>, it would push a dependency on the X size of each of its children.</p>
+<p>Then, it would solve the graph using what I later found out was called <a rel="external" href="https://en.wikipedia.org/wiki/Topological_sorting#Kahn&#x27;s_algorithm">Kahn's algorithm</a>.</p>
+<p>While this wasn't the fastest way to do it, it worked, and having an explicit list of edges was quite useful for debugging. For example, the edges could be displayed as a real graph using standard tools like <code>graphviz</code>.</p>
 <figure>
     <img src="giraffe_solved.png" alt="Giraffe solved in Keru.">
     <figcaption>The giraffe layout solved with the original algorithm. The giraffe is replaced by a gradient, as I didn't have an aesthetically consistent giraffe picture. However, you can see that the gradient has the correct aspect ratio.</figcaption>
 </figure>
 <h2 id="the-fast-algorithm">The Fast Algorithm</h2>
-<p>It turns out that the fast version of this algorithm is even simpler than the explicit one.</p>
+<p>Later, I found that there's a faster version of this algorithm, and it's even simpler than the explicit one:</p>
 <ol>
 <li>Go through all nodes in any order and call a <code>solve(node)</code> function to solve it.</li>
 <li>In <code>solve(node)</code>, first call <code>solve_all_dependencies(node)</code>.</li>
 <li>In <code>solve_all_dependencies(node)</code>, recursively call <code>solve(dependency)</code> for every unsolved <code>dependency</code> that <code>node</code> will have to read to compute its own layout.</li>
-<li>After the recursion, then calculate <code>node</code>'s own layout.</li>
+<li>After the recursion, calculate <code>node</code>'s own layout.</li>
 </ol>
 <p>That's it! This is enough to ensure that the algorithm will solve all the nodes in the correct dependency order. But in this way, there's no need for a separate pass that writes down the edges explicitly.</p>
 <p>Of course there's nothing new about this approach either, you can find it described on the <a rel="external" href="https://en.wikipedia.org/wiki/Topological_sorting#Depth-first_search">Wikipedia page on topological sorting in the "depth-first search" section,</a> right below the section on Kahn's algorithm. But sometimes just knowing about these things is not enough, you have to live it.</p>

@@ -35,7 +35,7 @@ To understand what was going on, I tried drawing the giraffe on paper and asking
     <figcaption>Again, you can ignore the dog.</figcaption>
 </figure>
 
-It turns out that in this case there's a pretty straightforward dependency chain:
+It turns out that there's a pretty straightforward dependency chain:
 
 - The single-line text determines the width of the v-stack on the right.
 - The wrapping text fills the width of the v-stack, and determines its height by wrapping.
@@ -47,10 +47,14 @@ It turns out that in this case there's a pretty straightforward dependency chain
 
 The solution is to come up with an algorithm that traverses this dependency chain and solves the sizes in that order, directly.
 
-Conceptually, these layout dependencies form a graph. Simplifying a bit for now, every graph node is a `(NodeID, Axis)` pair, and each dependency is an edge in the graph: `{ dependent: (NodeID, Axis), depends_on: (NodeID, Axis) }`.
+Conceptually, these layout dependencies form a graph. Simplifying a bit for now, every graph node is a `(NodeID, Axis)` pair, and each dependency is an edge in the graph: 
 
-The previous version of the algorithm would go through all UI elements in the tree and write down all the edges. For example, a UI element with `size_x = Fill` would push `{ dependent: (node_id, X), depends_on: (parent_id, X) }`,. If it had `size_x = FitContent`, it would push `{ dependent: (node_id, X), depends_on: (child_id, X) }` for each of its children.
+`{ dependent: (NodeID, Axis), depends_on: (NodeID, Axis) }`.
+
+The previous version of the algorithm would go through all UI elements in the tree and write down all the edges. For example, a UI element with `size_x = Fill` would push a dependency on the X size of its parent, or if it had `size_x = FitContent`, it would push a dependency on the X size of each of its children.
+
 Then, it would solve the graph using what I later found out was called [Kahn's algorithm](https://en.wikipedia.org/wiki/Topological_sorting#Kahn's_algorithm).
+
 While this wasn't the fastest way to do it, it worked, and having an explicit list of edges was quite useful for debugging. For example, the edges could be displayed as a real graph using standard tools like `graphviz`.
 
 <figure>
@@ -60,12 +64,12 @@ While this wasn't the fastest way to do it, it worked, and having an explicit li
 
 ## The Fast Algorithm
 
-It turns out that the fast version of this algorithm is even simpler than the explicit one.
+Later, I found that there's a faster version of this algorithm, and it's even simpler than the explicit one:
 
 1) Go through all nodes in any order and call a `solve(node)` function to solve it.
 2) In `solve(node)`, first call `solve_all_dependencies(node)`.
 3) In `solve_all_dependencies(node)`, recursively call `solve(dependency)` for every unsolved `dependency` that `node` will have to read to compute its own layout.
-4) After the recursion, then calculate `node`'s own layout.
+4) After the recursion, calculate `node`'s own layout.
 
 That's it! This is enough to ensure that the algorithm will solve all the nodes in the correct dependency order. But in this way, there's no need for a separate pass that writes down the edges explicitly.
 
