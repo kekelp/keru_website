@@ -3,7 +3,11 @@ title = "A New GUI Layout Algorithm"
 date = 2026-11-03
 +++
 
-Earlier this year I wrote a blog post about an experimental layout algorithm that I was trying for Keru, my GUI library. After some more experimentation, I found a way to rewrite the algorithm that keeps all of the good properties of the previous one, but is also much faster. According to [a benchmark](https://github.com/kekelp/arewelayoutyet) that I forked from [marc2332](https://github.com/marc2332/arewelayoutyet), it's now one of the fastest layout libraries out there. This time, I made a separate `keru_layout` crate for it, and I'm rewriting the blog post to keep the background explanation but describe the new faster algorithm, include a link to the benchmark data, and talk a bit about incremental relayout.
+Earlier this year I wrote a blog post about an experimental layout algorithm that I was trying for Keru, my GUI library. After some more experimentation, I found a way to rewrite the algorithm that keeps all of the good properties of the previous one, but is also much faster. According to [a benchmark](https://github.com/kekelp/arewelayoutyet) that I forked from [marc2332](https://github.com/marc2332/arewelayoutyet), it's now one of the fastest layout libraries out there.
+
+This time, I made a [separate crate for it](https://github.com/kekelp/keru_layout), and I'm rewriting the blog post to keep the background explanation but describe the new faster algorithm, include a link to the benchmark data, and talk a bit about incremental relayout.
+
+## What's wrong with existing layout algorithms anyway?
 
 Traditionally, GUI layout was more of an art than a science: a layout library would offer some layout primitives that the user can compose, but when it comes to solving them into real rectangle coordinates, it usually makes no real promises. It's sort of common to do a fairly half-hearted attempt, give out an inconsistent answer, and declare that particular layout unsupported.
 
@@ -16,7 +20,7 @@ The enlightening example is this innocent-looking giraffe layout, taken from [th
 
 In this layout, the multi-line paragraph fits to the width of the single-line label. The giraffe fills the height of the whole right section, and its width is half of its height, to preserve the aspect ratio of the bitmap image. As it turns out, most algorithms struggle with this.
 
-For example, the `clay` algorithm can't solve this case. If you write it in [the obvious way](@/css_giraffe.md), CSS won't solve it properly either: the giraffe stays at zero width. With enough nudging, like setting `writing-mode: vertical-lr` on the giraffe and on the h-stack, you can [convince the CSS engine that this really matters for correctness](@/css_giraffe_working.md), and it will solve it properly (thanks Nico Burns for figuring this out). But `vertical-*` is the writing mode used for vertically-aligned text runs, like in Mongolian and traditional Chinese and Japanese: it's fair to say that most users wouldn't think of resorting to this to get an `aspect-ratio` to work properly.
+For example, the `clay` algorithm can't solve this case. If you write it in [the obvious way](@/css_giraffe.md), CSS won't solve it properly either: the giraffe stays at zero width. With enough nudging, for example if we set `writing-mode: vertical-lr` on the giraffe and on the h-stack, you can [convince the CSS engine that this really matters for correctness](@/css_giraffe_working.md), and it will solve it properly (thanks Nico Burns for figuring this out). But `vertical-*` is the writing mode used for vertically-aligned text runs, like in Mongolian and traditional Chinese and Japanese: it's fair to say that most users wouldn't think of resorting to this to get an `aspect-ratio` to work properly.
 
 To be clear, I don't think this is necessarily a huge problem: especially in the case of `clay` there's nothing wrong with sticking to a simpler and faster algorithm if it works for the intended application. There's plenty of GUI programs that work great without any advanced layouts of this kind and don't run into any of these issues.
 
